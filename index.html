@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Carta dei Vini — Lagrandissima</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --hero:#435E78;--hero2:#2d4a63;--bg:#FAF7F1;--ink:#1C1510;
@@ -14,7 +14,7 @@
   --sb:260px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6}
+body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6}
 a{color:inherit;text-decoration:none}
 button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit}
 .hero{background:var(--hero);padding:32px 20px 28px;text-align:center;position:relative;overflow:hidden}
@@ -208,10 +208,25 @@ html,body{max-width:100%;overflow-x:hidden}
 <script>
 const SB_URL = "https://aznqjmhzbehpmvxnxbzs.supabase.co";
 const SB_KEY = "sb_publishable_FnsZcIMLdfbaABqmwx3I2A_rXfRmHhY";
+const DB_USER = "default";
 
-var db={}, catConfig=[], fCat="tutti", fSearch="", fTag=null;
+// Ordine categorie visualizzate come "Sezioni" nella carta
+const CAT_ORDER = ["Spumante","Bianco","Macerati","Macerato","Rosato","Rosso","Naturale","Dolce","Passito","Liquoroso"];
+const CAT_LABELS = {
+  Rosso:"Rossi", Bianco:"Bianchi", Rosato:"Rosati", Spumante:"Spumanti",
+  Naturale:"Naturali", Dolce:"Dolci", Passito:"Passiti", Liquoroso:"Liquorosi", Macerati:"Macerati", Macerato:"Macerati"
+};
+
+// Mappa colori sidebar per categoria
+const CAT_COLORS = {
+  Spumante:"#4a90c4", Bianco:"#c8a84b", Macerati:"#b07d3a", Macerato:"#b07d3a",
+  Rosato:"#c8607a", Rosso:"#8B1A1A", Naturale:"#3a6b4a",
+  Dolce:"#9b59b6", Passito:"#c0392b", Liquoroso:"#d35400"
+};
+
+var db={}, catConfig=[], fCat="tutti", fSearch="";
 var pMin=0, pMax=500, pMaxG=500;
-var fState={paese:"",regione:"",tipologia:""};
+var fState={paese:"",regione:"",tipologia:"",produttore:"",vitigno:""};
 var _idxById=new Map();
 var _sb=null;
 
@@ -225,49 +240,66 @@ function _setStatus(state){
   lbl.textContent={ok:"Live",sync:"Sync",err:"Offline",off:"Offline"}[state]||"DB";
 }
 
-async function loadCats(){
-  try{
-    var r=await _sb.from("categories").select("id,label,sort_order,config").order("sort_order",{ascending:true});
-    if(r.error)throw r.error;
-    if(r.data&&r.data.length)catConfig=r.data.map(function(row){return{nome:row.label||row.id,colore:(row.config&&row.config.colore)||"#888"};});
-  }catch(e){}
-}
-
 async function loadWines(){
-  var r=await _sb.from("wines").select("*").order("category_id",{ascending:true});
-  if(r.error)throw r.error;
-  var d={};
-  catConfig.forEach(function(c){d[c.nome]=[];});
-  (r.data||[]).forEach(function(w){
-    var cat=w.category_id;
-    if(!d[cat])d[cat]=[];
-    d[cat].push({id:w.id,n:w.n,produttore:w.produttore||"",annata:w.annata||"",
-      p:w.p||"",b:w.b||"",vitigno:w.vitigno||"",paese:w.paese||"",
-      regione:w.regione||"",tipologia:w.tipologia||"",
-      qty:w.qty!=null?w.qty:1,_p:w._p||0});
+  var r = await _sb.from("cm_wines").select("data").eq("user_id", DB_USER).maybeSingle();
+  if(r.error) throw r.error;
+  var wines = (r.data && r.data.data) ? r.data.data : [];
+  // Filtra solo vini con giacenza > 0
+  wines = wines.filter(function(w){ return (w.giacenza||0) > 0; });
+  // Costruisci db per categoria (tipologia)
+  var d = {};
+  CAT_ORDER.forEach(function(t){ d[t] = []; });
+  wines.forEach(function(w){
+    var cat = w.tipologia || "Altro";
+    if(!d[cat]) d[cat] = [];
+    // Normalizza struttura vino
+    var nome = w.nome || w.nomeVino || w.n || "";
+    var prod = w.produttore || "";
+    // Prendi il prezzo carta dalla prima referenza o dal campo diretto
+    var pCarta = w.prezzoCarta || w.p || "";
+    var pNum = parseFloat(String(pCarta).replace(/[^0-9.,]/g,"").replace(",",".")) || 0;
+    // Prezzo bottiglia formattato
+    var pFmt = pCarta ? "€ " + parseFloat(String(pCarta).replace(/[^0-9.,]/g,"").replace(",",".")).toFixed(0) : "";
+    d[cat].push({
+      id: w.id,
+      n: nome,
+      produttore: prod,
+      annata: w.annata || "",
+      p: pFmt,
+      b: w.prezzoCalice ? "€ "+parseFloat(w.prezzoCalice).toFixed(0) : "",
+      vitigno: w.vitigni || w.vitigno || "",
+      paese: w.nazione || w.paese || "",
+      regione: w.regione || w.zona || "",
+      tipologia: cat,
+      qty: w.giacenza || 0,
+      _p: pNum
+    });
   });
+  // Costruisci catConfig dai tipi presenti
+  catConfig = CAT_ORDER.filter(function(t){ return d[t] && d[t].length > 0; })
+    .map(function(t){ return { nome: t, label: CAT_LABELS[t]||t, colore: CAT_COLORS[t]||"#888" }; });
   return d;
 }
 
 async function _sbListen(){
   try{
-    _sb.channel("wines-changes")
-      .on("postgres_changes",{event:"*",schema:"public",table:"wines"},function(){
+    _sb.channel("cm-wines-changes")
+      .on("postgres_changes",{event:"*",schema:"public",table:"cm_wines"},function(){
         _setStatus("sync");
-        loadWines().then(function(d){db=d;_buildIdxById();applyFilters();buildSidebar();_setStatus("ok");}).catch(function(){_setStatus("err");});
-      })
-      .subscribe();
+        loadWines().then(function(d){
+          db=d; _buildIdxById(); applyFilters(); buildSidebar(); _setStatus("ok");
+        }).catch(function(){ _setStatus("err"); });
+      }).subscribe();
   }catch(e){}
 }
 
 async function init(){
   _setStatus("sync");
   try{
-    _sb=supabase.createClient(SB_URL,SB_KEY);
-    await loadCats();
-    db=await loadWines();
+    _sb = supabase.createClient(SB_URL, SB_KEY);
+    db = await loadWines();
     _buildIdxById();
-    applyFilters();buildSidebar();buildSortBar();
+    applyFilters(); buildSidebar(); buildSortBar();
     _setStatus("ok");
     _sbListen();
   }catch(e){
@@ -279,153 +311,181 @@ async function init(){
 function _buildIdxById(){
   _idxById.clear();
   Object.keys(db).forEach(function(cat){
-    (db[cat]||[]).forEach(function(w){_idxById.set(w.id,{v:w,c:cat});});
+    (db[cat]||[]).forEach(function(w){ _idxById.set(w.id,{v:w,c:cat}); });
   });
 }
 
 function applyFilters(){
-  var sortVal=document.getElementById("sort-sel")?document.getElementById("sort-sel").value:"default";
-  var html="";var total=0;
-  var catsToShow=fCat==="tutti"?catConfig.map(function(c){return c.nome;}):[fCat];
+  var sortVal = document.getElementById("sort-sel") ? document.getElementById("sort-sel").value : "default";
+  var html=""; var total=0;
+  var catsToShow = fCat==="tutti" ? catConfig.map(function(c){return c.nome;}) : [fCat];
   catsToShow.forEach(function(cat){
-    var wines=(db[cat]||[]).filter(function(w){
-      if(fSearch){var q=fSearch.toLowerCase();var hay=(w.n||"")+(w.produttore||"")+(w.vitigno||"")+(w.regione||"")+(w.paese||"");if(hay.toLowerCase().indexOf(q)<0)return false;}
-      if(fState.paese&&(w.paese||"").toLowerCase()!==fState.paese.toLowerCase())return false;
-      if(fState.regione&&(w.regione||"").toLowerCase()!==fState.regione.toLowerCase())return false;
-      if(fState.tipologia&&(w.tipologia||"").toLowerCase()!==fState.tipologia.toLowerCase())return false;
-      if(w._p<pMin||w._p>pMax)return false;
+    var wines = (db[cat]||[]).filter(function(w){
+      if(fSearch){
+        var q=fSearch.toLowerCase();
+        var hay=(w.n||"")+(w.produttore||"")+(w.vitigno||"")+(w.regione||"")+(w.paese||"");
+        if(hay.toLowerCase().indexOf(q)<0) return false;
+      }
+      if(fState.paese && (w.paese||"").toLowerCase()!==fState.paese.toLowerCase()) return false;
+      if(fState.regione && (w.regione||"").toLowerCase()!==fState.regione.toLowerCase()) return false;
+      if(fState.tipologia && (w.tipologia||"").toLowerCase()!==fState.tipologia.toLowerCase()) return false;
+      if(fState.produttore && (w.produttore||"").toLowerCase()!==fState.produttore.toLowerCase()) return false;
+      if(fState.vitigno && !(w.vitigno||"").toLowerCase().includes(fState.vitigno.toLowerCase())) return false;
+      if(w._p<pMin || w._p>pMax) return false;
       return true;
     });
-    if(sortVal==="az")wines.sort(function(a,b){return(a.n||"").localeCompare(b.n||"");});
-    else if(sortVal==="za")wines.sort(function(a,b){return(b.n||"").localeCompare(a.n||"");});
-    else if(sortVal==="asc")wines.sort(function(a,b){return a._p-b._p;});
-    else if(sortVal==="desc")wines.sort(function(a,b){return b._p-a._p;});
-    if(!wines.length)return;
-    total+=wines.length;
-    html+="<div class=\"sezione\"><div class=\"sezione-titolo\">"+esc(cat)+"</div>";
-    wines.forEach(function(w){html+=_buildWineRow(w,cat);});
-    html+="</div>";
+    if(sortVal==="az") wines.sort(function(a,b){return(a.n||"").localeCompare(b.n||"");});
+    else if(sortVal==="za") wines.sort(function(a,b){return(b.n||"").localeCompare(a.n||"");});
+    else if(sortVal==="asc") wines.sort(function(a,b){return a._p-b._p;});
+    else if(sortVal==="desc") wines.sort(function(a,b){return b._p-a._p;});
+    if(!wines.length) return;
+    total += wines.length;
+    var label = CAT_LABELS[cat]||cat;
+    html += "<div class=\"sezione\"><div class=\"sezione-titolo\">"+esc(label)+"</div>";
+    wines.forEach(function(w){ html += _buildWineRow(w,cat); });
+    html += "</div>";
   });
-  var rc=document.getElementById("results-count");
-  if(rc)rc.textContent=total+" etichett"+(total===1?"a":"e");
-  var wl=document.getElementById("wine-list");
-  if(wl)wl.innerHTML=html||"<div class=\"vuoto\">Nessun vino trovato.</div>";
+  var rc = document.getElementById("results-count");
+  if(rc) rc.textContent = total+" etichett"+(total===1?"a":"e");
+  var wl = document.getElementById("wine-list");
+  if(wl) wl.innerHTML = html || "<div class=\"vuoto\">Nessun vino trovato.</div>";
   _syncFabBadge();
-  // attach click handlers after render
   document.querySelectorAll(".vino[data-id]").forEach(function(el){
-    el.addEventListener("click",function(){openModal(el.getAttribute("data-id"));});
-  });
-  document.querySelectorAll(".cat-item[data-cat]").forEach(function(el){
-    el.addEventListener("click",function(){setFCat(el.getAttribute("data-cat"));});
-  });
-  document.querySelectorAll(".sb-select[data-field]").forEach(function(el){
-    el.addEventListener("change",function(){setFilter(el.getAttribute("data-field"),el.value);});
+    el.addEventListener("click",function(){ openModal(el.getAttribute("data-id")); });
   });
 }
 
 function _buildWineRow(w,cat){
-  var esaurito=w.qty===0;
-  var slug=cat.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
-  var cls="vino vino-"+slug+(esaurito?" esaurito":"");
-  var nome=esc(w.n)+(w.annata?"<span class=\"vino-annata\">"+esc(w.annata)+"</span>":"");
-  if(esaurito)nome+="<span class=\"badge-esaurito\">esaurito</span>";
-  var sub=[],geo=[];
-  if(w.produttore)sub.push(esc(w.produttore));
-  if(w.vitigno)sub.push(esc(w.vitigno));
-  if(w.regione)geo.push(esc(w.regione));
-  if(w.paese)geo.push(esc(w.paese));
+  var slug = cat.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+  var cls = "vino vino-"+slug;
+  var nome = esc(w.n)+(w.annata?"<span class=\"vino-annata\">"+esc(w.annata)+"</span>":"");
+  var sub=[], geo=[];
+  if(w.produttore) sub.push(esc(w.produttore));
+  if(w.vitigno) sub.push(esc(w.vitigno));
+  if(w.regione) geo.push(esc(w.regione));
+  if(w.paese) geo.push(esc(w.paese));
   return "<div class=\""+cls+"\" data-id=\""+w.id+"\">"
     +"<div class=\"vino-sx\">"
     +"<div class=\"vino-nome\">"+nome+"</div>"
     +(sub.length?"<div class=\"vino-sub\">"+sub.join(" · ")+"</div>":"")
     +(geo.length?"<div class=\"vino-geo\">"+geo.join(" · ")+"</div>":"")
     +"</div>"
-    +"<div class=\"vino-dx\"><div class=\"vino-prezzo\">"+esc(w.p)+"</div>"+(w.b?"<div class=\"vino-bicchiere\">calice "+esc(w.b)+"</div>":"")+"</div>"
-    +"</div>";
+    +"<div class=\"vino-dx\"><div class=\"vino-prezzo\">"+esc(w.p)+"</div>"
+    +(w.b?"<div class=\"vino-bicchiere\">calice "+esc(w.b)+"</div>":"")
+    +"</div></div>";
 }
 
 function buildSidebar(){
   var html="";
-  html+="<div class=\"sb-sec\"><div class=\"sb-head\"><span class=\"sb-title\">Categoria</span><button class=\"sb-btn\" data-cat=\"tutti\">Tutte</button></div><ul class=\"cat-list\">";
-  html+="<li class=\"cat-item"+(fCat==="tutti"?" active":"")+"\" data-cat=\"tutti\"><span class=\"cat-dot\"></span><span class=\"cat-label\">Tutte le etichette</span><span class=\"cat-count\">"+countAll()+"</span></li>";
+  html+="<div class=\"sb-sec\"><div class=\"sb-head\"><span class=\"sb-title\">Categoria</span>"
+    +"<button class=\"sb-btn\" data-cat=\"tutti\">Tutte</button></div><ul class=\"cat-list\">";
+  html+="<li class=\"cat-item"+(fCat==="tutti"?" active":"")+"\" data-cat=\"tutti\">"
+    +"<span class=\"cat-dot\"></span><span class=\"cat-label\">Tutte le etichette</span>"
+    +"<span class=\"cat-count\">"+countAll()+"</span></li>";
   catConfig.forEach(function(c){
-    var n=(db[c.nome]||[]).length;
-    var slug=c.nome.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+    var slug = c.nome.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+    var n = (db[c.nome]||[]).length;
     html+="<li class=\"cat-item"+(fCat===c.nome?" active":"")+"\" data-cat=\""+esc(c.nome)+"\">"
-      +"<span class=\"cat-dot cat-dot-"+slug+"\"></span><span class=\"cat-label\">"+esc(c.nome)+"</span><span class=\"cat-count\">"+n+"</span></li>";
+      +"<span class=\"cat-dot\" style=\"background:"+c.colore+"\"></span>"
+      +"<span class=\"cat-label\">"+esc(c.label||c.nome)+"</span>"
+      +"<span class=\"cat-count\">"+n+"</span></li>";
   });
   html+="</ul></div>";
-  ["paese","regione","tipologia"].forEach(function(field){
-    var vals=_getUniqueVals(field);if(!vals.length)return;
-    var labels={paese:"Paese",regione:"Regione / Zona",tipologia:"Tipologia"};
-    html+="<div class=\"sb-sec\"><div class=\"sb-head\"><span class=\"sb-title\">"+labels[field]+"</span></div>";
-    html+="<select class=\"sb-select\" data-field=\""+field+"\"><option value=\"\">Tutti</option>";
-    vals.forEach(function(v){html+="<option value=\""+esc(v)+"\"+"+(fState[field]===v?" selected":"")+">"+esc(v)+"</option>";});
+  // Filtri dropdown: paese, regione, tipologia, produttore, vitigno
+  [
+    {field:"paese",      label:"Paese"},
+    {field:"regione",    label:"Regione"},
+    {field:"tipologia",  label:"Tipologia"},
+    {field:"produttore", label:"Produttore"},
+    {field:"vitigno",    label:"Vitigno"}
+  ].forEach(function(f){
+    var vals = _getUniqueVals(f.field); if(!vals.length) return;
+    html+="<div class=\"sb-sec\"><div class=\"sb-head\"><span class=\"sb-title\">"+f.label+"</span></div>";
+    html+="<select class=\"sb-select\" data-field=\""+f.field+"\"><option value=\"\">Tutti</option>";
+    vals.forEach(function(v){
+      html+="<option value=\""+esc(v)+"\"" +(fState[f.field]===v?" selected":"")+">"+esc(v)+"</option>";
+    });
     html+="</select></div>";
   });
   html+="<div class=\"sb-sec\"><div class=\"sb-head\"><span class=\"sb-title\">Prezzo bottiglia</span></div>";
   html+="<div class=\"price-row\"><span>€ "+pMin+"</span><span>€ "+pMax+(pMax>=pMaxG?"+":"")+"</span></div>";
-  html+="<div class=\"dual-range-wrap\"><div class=\"dual-range-track\"></div><div class=\"dual-range-fill\" id=\"range-fill\"></div>"
+  html+="<div class=\"dual-range-wrap\"><div class=\"dual-range-track\"></div>"
+    +"<div class=\"dual-range-fill\" id=\"range-fill\"></div>"
     +"<input type=\"range\" id=\"range-min\" min=\"0\" max=\""+pMaxG+"\" step=\"5\" value=\""+pMin+"\" oninput=\"onRangeMin(this.value)\">"
     +"<input type=\"range\" id=\"range-max\" min=\"0\" max=\""+pMaxG+"\" step=\"5\" value=\""+pMax+"\" oninput=\"onRangeMax(this.value)\"></div></div>";
   html+="<div class=\"sb-sec\"><button class=\"btn-reset-all\" onclick=\"resetAll()\">↺ Reset filtri</button></div>";
-  document.getElementById("sidebar-inner").innerHTML=html;
+  document.getElementById("sidebar-inner").innerHTML = html;
   _updateRangeFill();
-  // attach click handlers
-  document.querySelectorAll(".cat-item[data-cat]").forEach(function(el){
-    el.addEventListener("click",function(){setFCat(el.getAttribute("data-cat"));});
-  });
-  document.querySelectorAll(".sb-btn[data-cat]").forEach(function(el){
-    el.addEventListener("click",function(){setFCat(el.getAttribute("data-cat"));});
-  });
-  document.querySelectorAll(".sb-select[data-field]").forEach(function(el){
-    el.addEventListener("change",function(){setFilter(el.getAttribute("data-field"),el.value);});
+  document.querySelectorAll(".cat-item[data-cat], .sb-btn[data-cat]").forEach(function(el){
+    el.addEventListener("click",function(){ setFCat(el.getAttribute("data-cat")); });
   });
 }
 
 function buildSortBar(){
   document.getElementById("sort-bar-wrap").innerHTML="<span class=\"sort-label\">Ordina</span>"
-    +"<select class=\"sort-select\" id=\"sort-sel\" onchange=\"applyFilters()\"><option value=\"default\">Default</option><option value=\"az\">A → Z</option><option value=\"za\">Z → A</option><option value=\"asc\">Prezzo ↑</option><option value=\"desc\">Prezzo ↓</option></select>";
+    +"<select class=\"sort-select\" id=\"sort-sel\" onchange=\"applyFilters()\"><option value=\"default\">Default</option>"
+    +"<option value=\"az\">A → Z</option><option value=\"za\">Z → A</option>"
+    +"<option value=\"asc\">Prezzo ↑</option><option value=\"desc\">Prezzo ↓</option></select>";
 }
 
-function countAll(){return Object.values(db).reduce(function(s,a){return s+a.length;},0);}
-function _getUniqueVals(field){var set=new Set();Object.values(db).forEach(function(arr){arr.forEach(function(w){if(w[field])set.add(w[field]);});});return Array.from(set).sort();}
-function setFCat(cat){fCat=cat;applyFilters();buildSidebar();}
-function setFilter(field,val){fState[field]=val;applyFilters();}
-function onRangeMin(v){v=parseInt(v);if(v>pMax-5)v=pMax-5;pMin=v;applyFilters();_updateRangeFill();var el=document.getElementById("range-min");if(el)el.value=v;}
-function onRangeMax(v){v=parseInt(v);if(v<pMin+5)v=pMin+5;pMax=v;applyFilters();_updateRangeFill();var el=document.getElementById("range-max");if(el)el.value=v;}
-function _updateRangeFill(){var fill=document.getElementById("range-fill");if(!fill)return;var p1=pMin/pMaxG*100,p2=pMax/pMaxG*100;fill.style.left=p1+"%";fill.style.width=(p2-p1)+"%";}
-function onSearch(inp){fSearch=inp.value;var cl=document.getElementById("search-clear");if(cl)cl.classList.toggle("show",!!fSearch);applyFilters();}
-function clearSearch(){fSearch="";var inp=document.getElementById("search-input");if(inp)inp.value="";var cl=document.getElementById("search-clear");if(cl)cl.classList.remove("show");applyFilters();}
-function resetAll(){fCat="tutti";fSearch="";pMin=0;pMax=pMaxG;fState={paese:"",regione:"",tipologia:""};var inp=document.getElementById("search-input");if(inp)inp.value="";var cl=document.getElementById("search-clear");if(cl)cl.classList.remove("show");applyFilters();buildSidebar();}
+function countAll(){ return catConfig.reduce(function(s,c){return s+(db[c.nome]||[]).length;},0); }
+function _getUniqueVals(field){
+  var set=new Set();
+  catConfig.forEach(function(c){
+    (db[c.nome]||[]).forEach(function(w){
+      if(!w[field]) return;
+      if(field==="vitigno"){
+        w[field].split(",").forEach(function(v){ var t=v.trim(); if(t) set.add(t); });
+      } else {
+        set.add(w[field]);
+      }
+    });
+  });
+  return Array.from(set).sort();
+}
+function setFCat(cat){ fCat=cat; applyFilters(); buildSidebar(); }
+function onRangeMin(v){ v=parseInt(v); if(v>pMax-5)v=pMax-5; pMin=v; applyFilters(); _updateRangeFill(); var el=document.getElementById("range-min"); if(el)el.value=v; }
+function onRangeMax(v){ v=parseInt(v); if(v<pMin+5)v=pMin+5; pMax=v; applyFilters(); _updateRangeFill(); var el=document.getElementById("range-max"); if(el)el.value=v; }
+function _updateRangeFill(){ var fill=document.getElementById("range-fill"); if(!fill)return; var p1=pMin/pMaxG*100,p2=pMax/pMaxG*100; fill.style.left=p1+"%"; fill.style.width=(p2-p1)+"%"; }
+function onSearch(inp){ fSearch=inp.value; var cl=document.getElementById("search-clear"); if(cl)cl.classList.toggle("show",!!fSearch); applyFilters(); }
+function clearSearch(){ fSearch=""; var inp=document.getElementById("search-input"); if(inp)inp.value=""; var cl=document.getElementById("search-clear"); if(cl)cl.classList.remove("show"); applyFilters(); }
+function resetAll(){ fCat="tutti"; fSearch=""; pMin=0; pMax=pMaxG; fState={paese:"",regione:"",tipologia:"",produttore:"",vitigno:""}; var inp=document.getElementById("search-input"); if(inp)inp.value=""; var cl=document.getElementById("search-clear"); if(cl)cl.classList.remove("show"); applyFilters(); buildSidebar(); }
 
 function openModal(id){
-  var item=_idxById.get(id);if(!item)return;
-  var w=item.v,cat=item.c;
-  document.getElementById("modal-cat").textContent=cat;
-  document.getElementById("modal-nome").textContent=w.n;
-  document.getElementById("modal-annata").textContent=w.annata?"Annata "+w.annata:"";
+  var item=_idxById.get(id); if(!item)return;
+  var w=item.v, cat=item.c;
+  document.getElementById("modal-cat").textContent = CAT_LABELS[cat]||cat;
+  document.getElementById("modal-nome").textContent = w.n;
+  document.getElementById("modal-annata").textContent = w.annata?"Annata "+w.annata:"";
   var p="";
-  if(w.p)p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Bottiglia</div><div class=\"modal-p-val\">"+esc(w.p)+"</div></div>";
-  if(w.b)p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Al calice</div><div class=\"modal-p-val\">"+esc(w.b)+"</div></div>";
-  document.getElementById("modal-prezzo").innerHTML=p;
+  if(w.p) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Bottiglia</div><div class=\"modal-p-val\">"+esc(w.p)+"</div></div>";
+  if(w.b) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Al calice</div><div class=\"modal-p-val\">"+esc(w.b)+"</div></div>";
+  document.getElementById("modal-prezzo").innerHTML = p;
   var body="";
-  [["Produttore",w.produttore],["Vitigno",w.vitigno],["Regione",w.regione],["Paese",w.paese],["Tipologia",w.tipologia]].forEach(function(r){if(r[1])body+="<div class=\"modal-row\"><span class=\"modal-lbl\">"+r[0]+"</span><span class=\"modal-val\">"+esc(r[1])+"</span></div>";});
-  if(w.qty===0)body+="<div style=\"margin-top:12px;padding:8px 12px;background:#f5e8e8;color:#7a1a1a;font-size:12px;border-radius:2px\">Momentaneamente esaurito</div>";
-  document.getElementById("modal-body").innerHTML=body||"<p style=\"color:var(--grey);font-size:13px\">Nessun dettaglio disponibile.</p>";
+  [["Produttore",w.produttore],["Vitigno",w.vitigno],["Regione",w.regione],["Paese",w.paese],["Tipologia",w.tipologia]].forEach(function(r){
+    if(r[1]) body+="<div class=\"modal-row\"><span class=\"modal-lbl\">"+r[0]+"</span><span class=\"modal-val\">"+esc(r[1])+"</span></div>";
+  });
+  document.getElementById("modal-body").innerHTML = body||"<p style=\"color:var(--grey);font-size:13px\">Nessun dettaglio disponibile.</p>";
   document.getElementById("modal").classList.add("show");
 }
-function closeModal(e){if(e.target===document.getElementById("modal"))closeModalDirect();}
-function closeModalDirect(){document.getElementById("modal").classList.remove("show");}
-document.addEventListener("keydown",function(e){if(e.key==="Escape")closeModalDirect();});
+function closeModal(e){ if(e.target===document.getElementById("modal")) closeModalDirect(); }
+function closeModalDirect(){ document.getElementById("modal").classList.remove("show"); }
+document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeModalDirect(); });
 
-function _countActiveFilters(){var n=0;if(fCat!=="tutti")n++;if(fState.paese)n++;if(fState.regione)n++;if(fState.tipologia)n++;if(fSearch)n++;if(pMin>0||pMax<pMaxG)n++;return n;}
-function _syncFabBadge(){var n=_countActiveFilters();var b=document.getElementById("fab-badge");if(b){b.textContent=n;b.classList.toggle("show",n>0);}}
-function openDrawer(){var body=document.getElementById("drawer-body");var src=document.getElementById("sidebar-inner");body.innerHTML=src.innerHTML;document.getElementById("filter-drawer").classList.add("open");document.getElementById("drawer-overlay").classList.add("show");document.body.style.overflow="hidden";
-  document.querySelectorAll("#drawer-body .cat-item[data-cat]").forEach(function(el){el.addEventListener("click",function(){setFCat(el.getAttribute("data-cat"));closeDrawer();});});
-  document.querySelectorAll("#drawer-body .sb-select[data-field]").forEach(function(el){el.addEventListener("change",function(){setFilter(el.getAttribute("data-field"),el.value);});});
+function _countActiveFilters(){ var n=0; if(fCat!=="tutti")n++; if(fSearch)n++; if(pMin>0||pMax<pMaxG)n++; if(fState.paese)n++; if(fState.regione)n++; if(fState.tipologia)n++; if(fState.produttore)n++; if(fState.vitigno)n++; return n; }
+function _syncFabBadge(){ var n=_countActiveFilters(); var b=document.getElementById("fab-badge"); if(b){b.textContent=n;b.classList.toggle("show",n>0);} }
+function openDrawer(){
+  var body=document.getElementById("drawer-body");
+  var src=document.getElementById("sidebar-inner");
+  body.innerHTML=src.innerHTML;
+  document.getElementById("filter-drawer").classList.add("open");
+  document.getElementById("drawer-overlay").classList.add("show");
+  document.body.style.overflow="hidden";
+  document.querySelectorAll("#drawer-body .cat-item[data-cat], #drawer-body .sb-btn[data-cat]").forEach(function(el){
+    el.addEventListener("click",function(){ setFCat(el.getAttribute("data-cat")); closeDrawer(); });
+  });
 }
-function closeDrawer(){document.getElementById("filter-drawer").classList.remove("open");document.getElementById("drawer-overlay").classList.remove("show");document.body.style.overflow="";_syncFabBadge();}
+function closeDrawer(){ document.getElementById("filter-drawer").classList.remove("open"); document.getElementById("drawer-overlay").classList.remove("show"); document.body.style.overflow=""; _syncFabBadge(); }
 
 init();
 </script>

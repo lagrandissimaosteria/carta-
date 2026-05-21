@@ -136,13 +136,21 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 @media(max-width:768px){
   .sidebar{display:none}
   .filter-fab{display:flex}
-  .main-content{padding:16px 14px}
+  .page-wrap{display:block;width:100%}
+  .main-content{padding:12px 10px;width:100%;box-sizing:border-box;overflow-x:hidden}
+  .sort-bar{padding:6px 10px}
   .sezione-titolo{font-size:12px}
+  .vino{padding:8px 10px 8px 10px;gap:8px}
   .vino-nome{font-size:13px}
+  .vino-dx{min-width:60px}
+  .vino-prezzo{font-size:14px}
+  .modal-overlay{padding:0;align-items:flex-end}
+  .modal-card{max-width:100%;max-height:92vh;border-radius:12px 12px 0 0}
   .modal-nome{font-size:20px}
   .modal-body{padding:16px 18px}
   .modal-prezzo{padding:12px 18px}
 }
+html,body{max-width:100%;overflow-x:hidden}
 </style>
 </head>
 <body>
@@ -199,43 +207,38 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const SB_URL = "https://aznqjmhzbehpmvxnxbzs.supabase.co";
-const SB_KEY = "sb_publishable_rIotpoh2POip1IY7NDnOAA_sAvDapzh";
-const SB_HDR = {"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"};
+const SB_KEY = "sb_publishable_FnsZcIMLdfbaABqmwx3I2A_rXfRmHhY";
 
-var db={}, catConfig=[], fCat='tutti', fSearch='', fTag=null;
+var db={}, catConfig=[], fCat="tutti", fSearch="", fTag=null;
 var pMin=0, pMax=500, pMaxG=500;
-var fState={paese:'',regione:'',tipologia:''};
+var fState={paese:"",regione:"",tipologia:""};
 var _idxById=new Map();
-var _sbClient=null, _sbChannel=null;
+var _sb=null;
 
-function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
-
-async function sbGet(table,params){
-  var r=await fetch(SB_URL+"/rest/v1/"+table+(params?"?"+params:""),{headers:Object.assign({"Accept":"application/json"},SB_HDR)});
-  if(!r.ok)throw new Error("sbGet "+table+" "+r.status);
-  return r.json();
-}
+function esc(s){var d=document.createElement("div");d.textContent=s||"";return d.innerHTML;}
 
 function _setStatus(state){
-  var dot=document.getElementById('sb-dot');
-  var lbl=document.getElementById('sb-lbl');
+  var dot=document.getElementById("sb-dot");
+  var lbl=document.getElementById("sb-lbl");
   if(!dot)return;
   dot.className=state;
-  lbl.textContent={ok:'Live',sync:'Sync',err:'Offline',off:'Offline'}[state]||'DB';
+  lbl.textContent={ok:"Live",sync:"Sync",err:"Offline",off:"Offline"}[state]||"DB";
 }
 
 async function loadCats(){
   try{
-    var rows=await sbGet("categories","select=id,label,sort_order,config&order=sort_order.asc");
-    if(rows&&rows.length)catConfig=rows.map(function(r){return{nome:r.label||r.id,colore:(r.config&&r.config.colore)||"#888"};});
+    var r=await _sb.from("categories").select("id,label,sort_order,config").order("sort_order",{ascending:true});
+    if(r.error)throw r.error;
+    if(r.data&&r.data.length)catConfig=r.data.map(function(row){return{nome:row.label||row.id,colore:(row.config&&row.config.colore)||"#888"};});
   }catch(e){}
 }
 
 async function loadWines(){
-  var wines=await sbGet("wines","select=*&order=category_id.asc");
+  var r=await _sb.from("wines").select("*").order("category_id",{ascending:true});
+  if(r.error)throw r.error;
   var d={};
   catConfig.forEach(function(c){d[c.nome]=[];});
-  (wines||[]).forEach(function(w){
+  (r.data||[]).forEach(function(w){
     var cat=w.category_id;
     if(!d[cat])d[cat]=[];
     d[cat].push({id:w.id,n:w.n,produttore:w.produttore||"",annata:w.annata||"",
@@ -246,177 +249,183 @@ async function loadWines(){
   return d;
 }
 
-async function init(){
-  _setStatus('sync');
+async function _sbListen(){
   try{
+    _sb.channel("wines-changes")
+      .on("postgres_changes",{event:"*",schema:"public",table:"wines"},function(){
+        _setStatus("sync");
+        loadWines().then(function(d){db=d;_buildIdxById();applyFilters();buildSidebar();_setStatus("ok");}).catch(function(){_setStatus("err");});
+      })
+      .subscribe();
+  }catch(e){}
+}
+
+async function init(){
+  _setStatus("sync");
+  try{
+    _sb=supabase.createClient(SB_URL,SB_KEY);
     await loadCats();
     db=await loadWines();
     _buildIdxById();
     applyFilters();buildSidebar();buildSortBar();
-    _setStatus('ok');
+    _setStatus("ok");
     _sbListen();
   }catch(e){
-    _setStatus('err');
-    document.getElementById('wine-list').innerHTML='<div class="vuoto">Errore caricamento.<br>Controlla la connessione.</div>';
+    _setStatus("err");
+    document.getElementById("wine-list").innerHTML="<div class=\"vuoto\">Errore caricamento.<br>Controlla la connessione.</div>";
   }
 }
 
 function _buildIdxById(){
   _idxById.clear();
-  Object.keys(db).forEach(function(c){(db[c]||[]).forEach(function(w){_idxById.set(w.id,{v:w,c:c});});});
-}
-
-var _reloadPending=false;
-function _sbListen(){
-  try{
-    _sbClient=supabase.createClient(SB_URL,SB_KEY);
-    _sbChannel=_sbClient.channel('carta-public')
-      .on('postgres_changes',{event:'*',schema:'public',table:'wines'},_onRemoteChange)
-      .on('postgres_changes',{event:'*',schema:'public',table:'categories'},_onRemoteChange)
-      .subscribe(function(s){
-        if(s==='SUBSCRIBED')_setStatus('ok');
-        else if(s==='CLOSED'||s==='CHANNEL_ERROR')_setStatus('err');
-      });
-  }catch(e){_setStatus('err');}
-}
-
-function _onRemoteChange(){
-  if(_reloadPending)return;
-  _reloadPending=true;_setStatus('sync');
-  setTimeout(async function(){
-    _reloadPending=false;
-    try{
-      await loadCats();db=await loadWines();_buildIdxById();
-      applyFilters();buildSidebar();buildSortBar();_setStatus('ok');
-    }catch(e){_setStatus('err');}
-  },600);
+  Object.keys(db).forEach(function(cat){
+    (db[cat]||[]).forEach(function(w){_idxById.set(w.id,{v:w,c:cat});});
+  });
 }
 
 function applyFilters(){
-  var allWines=[];
-  var cats=catConfig.map(function(c){return c.nome;});
-  cats.forEach(function(cat){
-    (db[cat]||[]).forEach(function(w){
-      if(fCat!=='tutti'&&cat!==fCat)return;
-      if(fSearch){var q=fSearch.toLowerCase();var hay=(w.n||'')+(w.produttore||'')+(w.vitigno||'')+(w.regione||'')+(w.paese||'');if(hay.toLowerCase().indexOf(q)<0)return;}
-      if(fState.paese&&(w.paese||'').toLowerCase()!==fState.paese.toLowerCase())return;
-      if(fState.regione&&(w.regione||'').toLowerCase()!==fState.regione.toLowerCase())return;
-      if(fState.tipologia&&(w.tipologia||'').toLowerCase()!==fState.tipologia.toLowerCase())return;
-      if(w._p<pMin||w._p>pMax)return;
-      allWines.push({w:w,cat:cat});
+  var sortVal=document.getElementById("sort-sel")?document.getElementById("sort-sel").value:"default";
+  var html="";var total=0;
+  var catsToShow=fCat==="tutti"?catConfig.map(function(c){return c.nome;}):[fCat];
+  catsToShow.forEach(function(cat){
+    var wines=(db[cat]||[]).filter(function(w){
+      if(fSearch){var q=fSearch.toLowerCase();var hay=(w.n||"")+(w.produttore||"")+(w.vitigno||"")+(w.regione||"")+(w.paese||"");if(hay.toLowerCase().indexOf(q)<0)return false;}
+      if(fState.paese&&(w.paese||"").toLowerCase()!==fState.paese.toLowerCase())return false;
+      if(fState.regione&&(w.regione||"").toLowerCase()!==fState.regione.toLowerCase())return false;
+      if(fState.tipologia&&(w.tipologia||"").toLowerCase()!==fState.tipologia.toLowerCase())return false;
+      if(w._p<pMin||w._p>pMax)return false;
+      return true;
     });
+    if(sortVal==="az")wines.sort(function(a,b){return(a.n||"").localeCompare(b.n||"");});
+    else if(sortVal==="za")wines.sort(function(a,b){return(b.n||"").localeCompare(a.n||"");});
+    else if(sortVal==="asc")wines.sort(function(a,b){return a._p-b._p;});
+    else if(sortVal==="desc")wines.sort(function(a,b){return b._p-a._p;});
+    if(!wines.length)return;
+    total+=wines.length;
+    html+="<div class=\"sezione\"><div class=\"sezione-titolo\">"+esc(cat)+"</div>";
+    wines.forEach(function(w){html+=_buildWineRow(w,cat);});
+    html+="</div>";
   });
-  var sortSel=document.getElementById('sort-sel');
-  var sortBy=sortSel?sortSel.value:'default';
-  if(sortBy==='az')allWines.sort(function(a,b){return a.w.n.localeCompare(b.w.n);});
-  else if(sortBy==='za')allWines.sort(function(a,b){return b.w.n.localeCompare(a.w.n);});
-  else if(sortBy==='asc')allWines.sort(function(a,b){return a.w._p-b.w._p;});
-  else if(sortBy==='desc')allWines.sort(function(a,b){return b.w._p-a.w._p;});
-  document.getElementById('results-count').textContent=allWines.length+' etichett'+(allWines.length===1?'a':'e');
-  var grouped={};
-  allWines.forEach(function(item){if(!grouped[item.cat])grouped[item.cat]=[];grouped[item.cat].push(item.w);});
-  var html='';
-  cats.forEach(function(cat){
-    if(!grouped[cat]||!grouped[cat].length)return;
-    var slug=cat.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
-    html+='<div class="sezione" id="sec-'+slug+'">';
-    html+='<div class="sezione-titolo">'+esc(cat)+'</div>';
-    grouped[cat].forEach(function(w){html+=renderWine(w,cat,slug);});
-    html+='</div>';
-  });
-  if(!html)html='<div class="vuoto">Nessun vino trovato.</div>';
-  document.getElementById('wine-list').innerHTML=html;
+  var rc=document.getElementById("results-count");
+  if(rc)rc.textContent=total+" etichett"+(total===1?"a":"e");
+  var wl=document.getElementById("wine-list");
+  if(wl)wl.innerHTML=html||"<div class=\"vuoto\">Nessun vino trovato.</div>";
   _syncFabBadge();
+  // attach click handlers after render
+  document.querySelectorAll(".vino[data-id]").forEach(function(el){
+    el.addEventListener("click",function(){openModal(el.getAttribute("data-id"));});
+  });
+  document.querySelectorAll(".cat-item[data-cat]").forEach(function(el){
+    el.addEventListener("click",function(){setFCat(el.getAttribute("data-cat"));});
+  });
+  document.querySelectorAll(".sb-select[data-field]").forEach(function(el){
+    el.addEventListener("change",function(){setFilter(el.getAttribute("data-field"),el.value);});
+  });
 }
 
-function renderWine(w,cat,slug){
+function _buildWineRow(w,cat){
   var esaurito=w.qty===0;
-  var cls='vino vino-'+slug+(esaurito?' esaurito':'');
-  var nome=esc(w.n)+(w.annata?'<span class="vino-annata">'+esc(w.annata)+'</span>':'');
-  if(esaurito)nome+='<span class="badge-esaurito">esaurito</span>';
-  var sub=[];if(w.produttore)sub.push(esc(w.produttore));if(w.vitigno)sub.push(esc(w.vitigno));
-  var geo=[];if(w.regione)geo.push(esc(w.regione));if(w.paese&&w.paese.toLowerCase()!=='italia')geo.push(esc(w.paese));
-  return '<div class="'+cls+'" onclick="openModal("+w.id+")">'
-    +'<div class="vino-sx">'
-    +'<div class="vino-nome">'+nome+'</div>'
-    +(sub.length?'<div class="vino-sub">'+sub.join(' · ')+'</div>':'')
-    +(geo.length?'<div class="vino-geo">'+geo.join(' · ')+'</div>':'')
-    +'</div>'
-    +'<div class="vino-dx"><div class="vino-prezzo">'+esc(w.p)+'</div>'+(w.b?'<div class="vino-bicchiere">calice '+esc(w.b)+'</div>':'')+'</div>'
-    +'</div>';
+  var slug=cat.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+  var cls="vino vino-"+slug+(esaurito?" esaurito":"");
+  var nome=esc(w.n)+(w.annata?"<span class=\"vino-annata\">"+esc(w.annata)+"</span>":"");
+  if(esaurito)nome+="<span class=\"badge-esaurito\">esaurito</span>";
+  var sub=[],geo=[];
+  if(w.produttore)sub.push(esc(w.produttore));
+  if(w.vitigno)sub.push(esc(w.vitigno));
+  if(w.regione)geo.push(esc(w.regione));
+  if(w.paese)geo.push(esc(w.paese));
+  return "<div class=\""+cls+"\" data-id=\""+w.id+"\">"
+    +"<div class=\"vino-sx\">"
+    +"<div class=\"vino-nome\">"+nome+"</div>"
+    +(sub.length?"<div class=\"vino-sub\">"+sub.join(" · ")+"</div>":"")
+    +(geo.length?"<div class=\"vino-geo\">"+geo.join(" · ")+"</div>":"")
+    +"</div>"
+    +"<div class=\"vino-dx\"><div class=\"vino-prezzo\">"+esc(w.p)+"</div>"+(w.b?"<div class=\"vino-bicchiere\">calice "+esc(w.b)+"</div>":"")+"</div>"
+    +"</div>";
 }
 
 function buildSidebar(){
-  var html='';
-  html+='<div class="sb-sec"><div class="sb-head"><span class="sb-title">Categoria</span><button class="sb-btn" onclick="setFCat("tutti")">Tutte</button></div><ul class="cat-list">';
-  html+='<li class="cat-item'+(fCat==='tutti'?' active':'')+'" onclick="setFCat("tutti")"><span class="cat-dot"></span><span class="cat-label">Tutte le etichette</span><span class="cat-count">'+countAll()+'</span></li>';
+  var html="";
+  html+="<div class=\"sb-sec\"><div class=\"sb-head\"><span class=\"sb-title\">Categoria</span><button class=\"sb-btn\" data-cat=\"tutti\">Tutte</button></div><ul class=\"cat-list\">";
+  html+="<li class=\"cat-item"+(fCat==="tutti"?" active":"")+"\" data-cat=\"tutti\"><span class=\"cat-dot\"></span><span class=\"cat-label\">Tutte le etichette</span><span class=\"cat-count\">"+countAll()+"</span></li>";
   catConfig.forEach(function(c){
     var n=(db[c.nome]||[]).length;
-    var slug=c.nome.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
-    html+='<li class="cat-item'+(fCat===c.nome?' active':'')+'" onclick="setFCat(esc(c.nome))">'
-      +'<span class="cat-dot cat-dot-'+slug+'"></span><span class="cat-label">'+esc(c.nome)+'</span><span class="cat-count">'+n+'</span></li>';
+    var slug=c.nome.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+    html+="<li class=\"cat-item"+(fCat===c.nome?" active":"")+"\" data-cat=\""+esc(c.nome)+"\">"
+      +"<span class=\"cat-dot cat-dot-"+slug+"\"></span><span class=\"cat-label\">"+esc(c.nome)+"</span><span class=\"cat-count\">"+n+"</span></li>";
   });
-  html+='</ul></div>';
-  ['paese','regione','tipologia'].forEach(function(field){
+  html+="</ul></div>";
+  ["paese","regione","tipologia"].forEach(function(field){
     var vals=_getUniqueVals(field);if(!vals.length)return;
-    var labels={paese:'Paese',regione:'Regione / Zona',tipologia:'Tipologia'};
-    html+='<div class="sb-sec"><div class="sb-head"><span class="sb-title">'+labels[field]+'</span></div>';
-    html+='<select class="sb-select" onchange="setFilter(field,this.value)"><option value="">Tutti</option>';
-    vals.forEach(function(v){html+='<option value="'+esc(v)+'"'+(fState[field]===v?' selected':'')+'>'+esc(v)+'</option>';});
-    html+='</select></div>';
+    var labels={paese:"Paese",regione:"Regione / Zona",tipologia:"Tipologia"};
+    html+="<div class=\"sb-sec\"><div class=\"sb-head\"><span class=\"sb-title\">"+labels[field]+"</span></div>";
+    html+="<select class=\"sb-select\" data-field=\""+field+"\"><option value=\"\">Tutti</option>";
+    vals.forEach(function(v){html+="<option value=\""+esc(v)+"\"+"+(fState[field]===v?" selected":"")+">"+esc(v)+"</option>";});
+    html+="</select></div>";
   });
-  html+='<div class="sb-sec"><div class="sb-head"><span class="sb-title">Prezzo bottiglia</span></div>';
-  html+='<div class="price-row"><span>€ '+pMin+'</span><span>€ '+pMax+(pMax>=pMaxG?'+':'')+'</span></div>';
-  html+='<div class="dual-range-wrap"><div class="dual-range-track"></div><div class="dual-range-fill" id="range-fill"></div>'
-    +'<input type="range" id="range-min" min="0" max="'+pMaxG+'" step="5" value="'+pMin+'" oninput="onRangeMin(this.value)">'
-    +'<input type="range" id="range-max" min="0" max="'+pMaxG+'" step="5" value="'+pMax+'" oninput="onRangeMax(this.value)"></div></div>';
-  html+='<div class="sb-sec"><button class="btn-reset-all" onclick="resetAll()">↺ Reset filtri</button></div>';
-  document.getElementById('sidebar-inner').innerHTML=html;
+  html+="<div class=\"sb-sec\"><div class=\"sb-head\"><span class=\"sb-title\">Prezzo bottiglia</span></div>";
+  html+="<div class=\"price-row\"><span>€ "+pMin+"</span><span>€ "+pMax+(pMax>=pMaxG?"+":"")+"</span></div>";
+  html+="<div class=\"dual-range-wrap\"><div class=\"dual-range-track\"></div><div class=\"dual-range-fill\" id=\"range-fill\"></div>"
+    +"<input type=\"range\" id=\"range-min\" min=\"0\" max=\""+pMaxG+"\" step=\"5\" value=\""+pMin+"\" oninput=\"onRangeMin(this.value)\">"
+    +"<input type=\"range\" id=\"range-max\" min=\"0\" max=\""+pMaxG+"\" step=\"5\" value=\""+pMax+"\" oninput=\"onRangeMax(this.value)\"></div></div>";
+  html+="<div class=\"sb-sec\"><button class=\"btn-reset-all\" onclick=\"resetAll()\">↺ Reset filtri</button></div>";
+  document.getElementById("sidebar-inner").innerHTML=html;
   _updateRangeFill();
+  // attach click handlers
+  document.querySelectorAll(".cat-item[data-cat]").forEach(function(el){
+    el.addEventListener("click",function(){setFCat(el.getAttribute("data-cat"));});
+  });
+  document.querySelectorAll(".sb-btn[data-cat]").forEach(function(el){
+    el.addEventListener("click",function(){setFCat(el.getAttribute("data-cat"));});
+  });
+  document.querySelectorAll(".sb-select[data-field]").forEach(function(el){
+    el.addEventListener("change",function(){setFilter(el.getAttribute("data-field"),el.value);});
+  });
 }
 
 function buildSortBar(){
-  document.getElementById('sort-bar-wrap').innerHTML='<span class="sort-label">Ordina</span>'
-    +'<select class="sort-select" id="sort-sel" onchange="applyFilters()"><option value="default">Default</option><option value="az">A → Z</option><option value="za">Z → A</option><option value="asc">Prezzo ↑</option><option value="desc">Prezzo ↓</option></select>';
+  document.getElementById("sort-bar-wrap").innerHTML="<span class=\"sort-label\">Ordina</span>"
+    +"<select class=\"sort-select\" id=\"sort-sel\" onchange=\"applyFilters()\"><option value=\"default\">Default</option><option value=\"az\">A → Z</option><option value=\"za\">Z → A</option><option value=\"asc\">Prezzo ↑</option><option value=\"desc\">Prezzo ↓</option></select>";
 }
 
 function countAll(){return Object.values(db).reduce(function(s,a){return s+a.length;},0);}
 function _getUniqueVals(field){var set=new Set();Object.values(db).forEach(function(arr){arr.forEach(function(w){if(w[field])set.add(w[field]);});});return Array.from(set).sort();}
 function setFCat(cat){fCat=cat;applyFilters();buildSidebar();}
 function setFilter(field,val){fState[field]=val;applyFilters();}
-function onRangeMin(v){v=parseInt(v);if(v>pMax-5)v=pMax-5;pMin=v;applyFilters();_updateRangeFill();var el=document.getElementById('range-min');if(el)el.value=v;}
-function onRangeMax(v){v=parseInt(v);if(v<pMin+5)v=pMin+5;pMax=v;applyFilters();_updateRangeFill();var el=document.getElementById('range-max');if(el)el.value=v;}
-function _updateRangeFill(){var fill=document.getElementById('range-fill');if(!fill)return;var p1=pMin/pMaxG*100,p2=pMax/pMaxG*100;fill.style.left=p1+'%';fill.style.width=(p2-p1)+'%';}
-function onSearch(inp){fSearch=inp.value;var cl=document.getElementById('search-clear');if(cl)cl.classList.toggle('show',!!fSearch);applyFilters();}
-function clearSearch(){fSearch='';var inp=document.getElementById('search-input');if(inp)inp.value='';var cl=document.getElementById('search-clear');if(cl)cl.classList.remove('show');applyFilters();}
-function resetAll(){fCat='tutti';fSearch='';pMin=0;pMax=pMaxG;fState={paese:'',regione:'',tipologia:''};var inp=document.getElementById('search-input');if(inp)inp.value='';var cl=document.getElementById('search-clear');if(cl)cl.classList.remove('show');applyFilters();buildSidebar();}
+function onRangeMin(v){v=parseInt(v);if(v>pMax-5)v=pMax-5;pMin=v;applyFilters();_updateRangeFill();var el=document.getElementById("range-min");if(el)el.value=v;}
+function onRangeMax(v){v=parseInt(v);if(v<pMin+5)v=pMin+5;pMax=v;applyFilters();_updateRangeFill();var el=document.getElementById("range-max");if(el)el.value=v;}
+function _updateRangeFill(){var fill=document.getElementById("range-fill");if(!fill)return;var p1=pMin/pMaxG*100,p2=pMax/pMaxG*100;fill.style.left=p1+"%";fill.style.width=(p2-p1)+"%";}
+function onSearch(inp){fSearch=inp.value;var cl=document.getElementById("search-clear");if(cl)cl.classList.toggle("show",!!fSearch);applyFilters();}
+function clearSearch(){fSearch="";var inp=document.getElementById("search-input");if(inp)inp.value="";var cl=document.getElementById("search-clear");if(cl)cl.classList.remove("show");applyFilters();}
+function resetAll(){fCat="tutti";fSearch="";pMin=0;pMax=pMaxG;fState={paese:"",regione:"",tipologia:""};var inp=document.getElementById("search-input");if(inp)inp.value="";var cl=document.getElementById("search-clear");if(cl)cl.classList.remove("show");applyFilters();buildSidebar();}
 
 function openModal(id){
   var item=_idxById.get(id);if(!item)return;
   var w=item.v,cat=item.c;
-  document.getElementById('modal-cat').textContent=cat;
-  document.getElementById('modal-nome').textContent=w.n;
-  document.getElementById('modal-annata').textContent=w.annata?'Annata '+w.annata:'';
-  var p='';
-  if(w.p)p+='<div class="modal-p-item"><div class="modal-p-lbl">Bottiglia</div><div class="modal-p-val">'+esc(w.p)+'</div></div>';
-  if(w.b)p+='<div class="modal-p-item"><div class="modal-p-lbl">Al calice</div><div class="modal-p-val">'+esc(w.b)+'</div></div>';
-  document.getElementById('modal-prezzo').innerHTML=p;
-  var body='';
-  [['Produttore',w.produttore],['Vitigno',w.vitigno],['Regione',w.regione],['Paese',w.paese],['Tipologia',w.tipologia]].forEach(function(r){if(r[1])body+='<div class="modal-row"><span class="modal-lbl">'+r[0]+'</span><span class="modal-val">'+esc(r[1])+'</span></div>';});
-  if(w.qty===0)body+='<div style="margin-top:12px;padding:8px 12px;background:#f5e8e8;color:#7a1a1a;font-size:12px;border-radius:2px">Momentaneamente esaurito</div>';
-  document.getElementById('modal-body').innerHTML=body||'<p style="color:var(--grey);font-size:13px">Nessun dettaglio disponibile.</p>';
-  document.getElementById('modal').classList.add('show');
+  document.getElementById("modal-cat").textContent=cat;
+  document.getElementById("modal-nome").textContent=w.n;
+  document.getElementById("modal-annata").textContent=w.annata?"Annata "+w.annata:"";
+  var p="";
+  if(w.p)p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Bottiglia</div><div class=\"modal-p-val\">"+esc(w.p)+"</div></div>";
+  if(w.b)p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Al calice</div><div class=\"modal-p-val\">"+esc(w.b)+"</div></div>";
+  document.getElementById("modal-prezzo").innerHTML=p;
+  var body="";
+  [["Produttore",w.produttore],["Vitigno",w.vitigno],["Regione",w.regione],["Paese",w.paese],["Tipologia",w.tipologia]].forEach(function(r){if(r[1])body+="<div class=\"modal-row\"><span class=\"modal-lbl\">"+r[0]+"</span><span class=\"modal-val\">"+esc(r[1])+"</span></div>";});
+  if(w.qty===0)body+="<div style=\"margin-top:12px;padding:8px 12px;background:#f5e8e8;color:#7a1a1a;font-size:12px;border-radius:2px\">Momentaneamente esaurito</div>";
+  document.getElementById("modal-body").innerHTML=body||"<p style=\"color:var(--grey);font-size:13px\">Nessun dettaglio disponibile.</p>";
+  document.getElementById("modal").classList.add("show");
 }
-function closeModal(e){if(e.target===document.getElementById('modal'))closeModalDirect();}
-function closeModalDirect(){document.getElementById('modal').classList.remove('show');}
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModalDirect();});
+function closeModal(e){if(e.target===document.getElementById("modal"))closeModalDirect();}
+function closeModalDirect(){document.getElementById("modal").classList.remove("show");}
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeModalDirect();});
 
-function _countActiveFilters(){var n=0;if(fCat!=='tutti')n++;if(fState.paese)n++;if(fState.regione)n++;if(fState.tipologia)n++;if(fSearch)n++;if(pMin>0||pMax<pMaxG)n++;return n;}
-function _syncFabBadge(){var n=_countActiveFilters();var b=document.getElementById('fab-badge');if(b){b.textContent=n;b.classList.toggle('show',n>0);}}
-function openDrawer(){var body=document.getElementById('drawer-body');var src=document.getElementById('sidebar-inner');body.innerHTML=src.innerHTML;document.getElementById('filter-drawer').classList.add('open');document.getElementById('drawer-overlay').classList.add('show');document.body.style.overflow='hidden';}
-function closeDrawer(){document.getElementById('filter-drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('show');document.body.style.overflow='';_syncFabBadge();}
+function _countActiveFilters(){var n=0;if(fCat!=="tutti")n++;if(fState.paese)n++;if(fState.regione)n++;if(fState.tipologia)n++;if(fSearch)n++;if(pMin>0||pMax<pMaxG)n++;return n;}
+function _syncFabBadge(){var n=_countActiveFilters();var b=document.getElementById("fab-badge");if(b){b.textContent=n;b.classList.toggle("show",n>0);}}
+function openDrawer(){var body=document.getElementById("drawer-body");var src=document.getElementById("sidebar-inner");body.innerHTML=src.innerHTML;document.getElementById("filter-drawer").classList.add("open");document.getElementById("drawer-overlay").classList.add("show");document.body.style.overflow="hidden";
+  document.querySelectorAll("#drawer-body .cat-item[data-cat]").forEach(function(el){el.addEventListener("click",function(){setFCat(el.getAttribute("data-cat"));closeDrawer();});});
+  document.querySelectorAll("#drawer-body .sb-select[data-field]").forEach(function(el){el.addEventListener("change",function(){setFilter(el.getAttribute("data-field"),el.value);});});
+}
+function closeDrawer(){document.getElementById("filter-drawer").classList.remove("open");document.getElementById("drawer-overlay").classList.remove("show");document.body.style.overflow="";_syncFabBadge();}
 
 init();
 </script>
-</body>
-</html>

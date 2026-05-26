@@ -69,19 +69,88 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .sezione{margin-bottom:36px}
 .sezione-titolo{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;font-style:italic;letter-spacing:.5px;color:var(--hero);border-bottom:3px solid var(--hero);padding:18px 0 12px;margin-bottom:16px;display:flex;align-items:center;gap:10px;text-transform:uppercase}
 .sezione-titolo::before{content:'';display:inline-block;width:32px;height:2px;background:currentColor;flex-shrink:0}
-.vino{display:flex;justify-content:space-between;align-items:center;padding:9px 10px 9px 14px;border-bottom:1px solid var(--line);gap:12px;cursor:pointer;border-left:3px solid transparent;transition:background .15s}
+/* ── CARD VINO ─────────────────────────────────────────── */
+.vino{
+  display:flex;align-items:flex-start;
+  padding:14px 12px 14px 16px;
+  border-bottom:1px solid var(--line);
+  gap:10px;cursor:pointer;
+  border-left:3px solid transparent;
+  transition:background .15s;
+  position:relative;
+}
 .vino:last-child{border-bottom:none}
-.vino:hover{background:rgba(67,94,120,.04)}
+.vino:active{background:rgba(67,94,120,.06)}
 .vino-sx{flex:1;min-width:0}
-.vino-nome{font-size:14px;font-weight:500;font-family:'Playfair Display',serif;line-height:1.3}
-.vino-annata{font-size:11px;font-weight:500;color:var(--gold);margin-left:6px;letter-spacing:.5px}
-.vino-sub{font-size:11px;color:var(--grey);margin-top:2px}
-.vino-geo{font-size:10px;color:var(--hero);margin-top:2px;font-weight:500;letter-spacing:.3px;opacity:.8}
-.vino-dx{text-align:right;flex-shrink:0;min-width:72px}
-.vino-prezzo{font-size:15px;font-weight:600;color:var(--hero);font-family:'Playfair Display',serif}
-.vino-bicchiere{font-size:10px;color:var(--grey);margin-top:2px}
+/* Riga 1 — Nome vino (grande, serif, leggibile) */
+.vino-nome{
+  font-family:'Playfair Display',serif;
+  font-size:15px;font-weight:700;
+  color:var(--ink);line-height:1.25;
+  margin-bottom:3px;
+}
+/* Annata — badge dorato inline accanto al nome */
+.vino-annata{
+  display:inline-block;
+  font-family:'Inter',sans-serif;
+  font-size:10px;font-weight:700;
+  color:var(--gold);
+  border:1px solid rgba(197,160,72,.4);
+  background:rgba(197,160,72,.08);
+  border-radius:3px;
+  padding:1px 5px;letter-spacing:.5px;
+  margin-left:6px;vertical-align:middle;
+  position:relative;top:-1px;
+  white-space:nowrap;
+}
+/* Riga 2 — Produttore (il "chi fa il vino") — prominente */
+.vino-prod{
+  font-size:12px;font-weight:600;
+  color:var(--hero);
+  letter-spacing:.3px;
+  margin-bottom:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+/* Riga 3 — Vitigno in corsivo grigio */
+.vino-vitigno{
+  font-size:11px;font-weight:400;
+  color:var(--grey);font-style:italic;
+}
+/* Riga 4 — Provenienza: Regione · PAESE */
+.vino-geo{
+  font-size:10px;font-weight:500;
+  color:var(--grey);
+  margin-top:3px;
+  display:flex;align-items:center;gap:4px;
+}
+.vino-regione{color:var(--grey)}
+.vino-paese-tag{
+  display:inline-block;
+  font-size:9px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.7px;
+  color:#fff;
+  background:var(--hero);
+  border-radius:2px;
+  padding:1px 5px;
+}
+.vino-geo-sep{color:var(--line);margin:0 3px;font-size:10px}
+/* Colonna destra — prezzo */
+.vino-dx{
+  text-align:right;flex-shrink:0;
+  min-width:62px;
+  padding-top:1px;
+}
+.vino-prezzo{
+  font-family:'Playfair Display',serif;
+  font-size:16px;font-weight:700;
+  color:var(--hero);line-height:1;
+}
+.vino-bicchiere{
+  font-size:10px;color:var(--grey);
+  margin-top:4px;white-space:nowrap;
+}
 .vino.esaurito .vino-nome{text-decoration:line-through;color:var(--grey)}
-.vino.esaurito .vino-prezzo,.vino.esaurito .vino-sub,.vino.esaurito .vino-geo{opacity:.45}
+.vino.esaurito .vino-prezzo,.vino.esaurito .vino-prod,.vino.esaurito .vino-geo{opacity:.4}
 .badge-esaurito{font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:1px 7px;border-radius:2px;margin-left:6px;vertical-align:middle;color:#7a1a1a;background:#f5e8e8;border:1px solid #c8a0a0;text-decoration:none!important;display:inline-block}
 .vuoto{text-align:center;padding:60px 0;color:var(--grey);font-size:13px}
 .vino-bolle{border-left-color:var(--c-bolle)!important}
@@ -145,13 +214,15 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   .search-input{font-size:14px}
   .sezione{margin-bottom:20px}
   .sezione-titolo{font-size:18px;padding:12px 4px 10px;letter-spacing:.1em}
-  .vino{padding:8px 6px;gap:6px;max-width:100%}
-  .vino-nome{font-size:13px;line-height:1.3}
-  .vino-annata{font-size:10px}
-  .vino-sub,.vino-geo{font-size:10px}
-  .vino-dx{min-width:54px;text-align:right}
-  .vino-prezzo{font-size:13px}
-  .vino-bicchiere{font-size:10px}
+  .vino{padding:12px 10px 12px 14px;gap:8px}
+  .vino-nome{font-size:14px}
+  .vino-annata{font-size:9px;padding:1px 4px}
+  .vino-prod{font-size:11px}
+  .vino-vitigno{font-size:10px}
+  .vino-geo{font-size:9px}
+  .vino-dx{min-width:52px}
+  .vino-prezzo{font-size:15px}
+  .vino-bicchiere{font-size:9px}
   .modal-overlay{padding:0;align-items:flex-end}
   .modal-card{max-width:100%;max-height:92vh;border-radius:14px 14px 0 0;margin:0}
   .modal-nome{font-size:18px}
@@ -243,6 +314,93 @@ var fState={paese:"",regione:"",tipologia:"",produttore:"",vitigno:""};
 var _idxById=new Map();
 var _sb=null;
 
+// ── INFERISCE IL PAESE DALLA REGIONE ─────────────────────────────────────────
+// Usato quando w.nazione è vuota in CM. Copre tutte le regioni del reference
+// e aggiunge alias comuni italiani/francesi usati in pratica.
+var _REGIONE_TO_PAESE = {
+  // Italia
+  "abruzzo":"Italia","alto adige":"Italia","basilicata":"Italia","calabria":"Italia",
+  "campania":"Italia","emilia romagna":"Italia","emilia-romagna":"Italia",
+  "friuli venezia giulia":"Italia","friuli":"Italia","lazio":"Italia",
+  "liguria":"Italia","lombardia":"Italia","marche":"Italia","molise":"Italia",
+  "piemonte":"Italia","puglia":"Italia","sardegna":"Italia","sicilia":"Italia",
+  "toscana":"Italia","trentino alto adige":"Italia","trentino":"Italia",
+  "umbria":"Italia","valle d'aosta":"Italia","veneto":"Italia",
+  "collio":"Italia","colli euganei":"Italia","soave":"Italia","amarone":"Italia",
+  // Francia
+  "alsazia":"Francia","ardeche":"Francia","ardèche":"Francia",
+  "auvergne":"Francia","beaujolais":"Francia","bordeaux":"Francia",
+  "borgogna":"Francia","chablis":"Francia","champagne":"Francia",
+  "cotes catalanes":"Francia","côtes catalanes":"Francia",
+  "jura":"Francia","languedoc":"Francia","languedoc – roussillon":"Francia",
+  "languedoc - roussillon":"Francia","loira":"Francia","loire":"Francia",
+  "nuova aquitania – charente":"Francia","nuova aquitania – dordogna":"Francia",
+  "provenza":"Francia","provence":"Francia","rodano":"Francia","rhône":"Francia",
+  "rhone":"Francia","roussillon":"Francia","savoia":"Francia",
+  "sud ouest":"Francia","alsace":"Francia","bourgogne":"Francia",
+  // Germania
+  "baden":"Germania","franconia":"Germania","mosella":"Germania","mosel":"Germania",
+  "pfalz":"Germania","rheingau":"Germania","rheinhessen":"Germania",
+  "ahr":"Germania","nahe":"Germania","württemberg":"Germania",
+  // Austria
+  "burgenland":"Austria","niederösterreich":"Austria","steiermark":"Austria",
+  "wagram":"Austria","wachau":"Austria","kamptal":"Austria","kremstal":"Austria",
+  "vienna":"Austria","wien":"Austria","vino di vienna":"Austria",
+  // Spagna
+  "andalusia":"Spagna","bierzo":"Spagna","canarias":"Spagna",
+  "castilla y leon":"Spagna","catalogna":"Spagna","catalunya":"Spagna",
+  "gran canaria":"Spagna","lanzarote":"Spagna","manchuela":"Spagna",
+  "paesi baschi":"Spagna","pais vasco":"Spagna","priorat":"Spagna",
+  "rias baixas":"Spagna","ribera del duero":"Spagna","rioja":"Spagna",
+  "tenerife":"Spagna","villanueva de avila":"Spagna","navarra":"Spagna",
+  "jerez":"Spagna","madrid":"Spagna","la mancha":"Spagna","galicia":"Spagna",
+  "andia":"Spagna",
+  // Portogallo
+  "alentejo":"Portogallo","bairrada":"Portogallo","douro":"Portogallo",
+  "minho":"Portogallo","serra da estrela":"Portogallo","vinho verde":"Portogallo",
+  "duriense":"Portogallo","algarve":"Portogallo","beira":"Portogallo",
+  // Slovenia
+  "collio sloveno":"Slovenia","brda":"Slovenia","karst":"Slovenia",
+  // Grecia
+  "santorini":"Grecia","naoussa":"Grecia","nemea":"Grecia","crete":"Grecia",
+  "creta":"Grecia","makedonia":"Grecia","macedonia":"Grecia",
+  // Bulgaria
+  "rila":"Bulgaria","thrace":"Bulgaria","tracia":"Bulgaria",
+  // Serbia
+  "serbia":"Serbia","sumadija":"Serbia",
+  // Australia
+  "margaret river":"Australia","victoria":"Australia","barossa":"Australia",
+  "mclaren vale":"Australia","hunter valley":"Australia","tasmania":"Australia",
+  // Nuova Zelanda
+  "central otago":"Nuova Zelanda","marlborough":"Nuova Zelanda",
+  "hawke's bay":"Nuova Zelanda","nelson":"Nuova Zelanda",
+  // Cile
+  "maipo valley":"Cile","colchagua":"Cile","casablanca":"Cile","leyda":"Cile",
+  // Sudafrica
+  "western cape":"Sudafrica","stellenbosch":"Sudafrica","swartland":"Sudafrica",
+  // Stati Uniti
+  "sonoma":"Stati Uniti","napa":"Stati Uniti","napa valley":"Stati Uniti",
+  "willamette":"Stati Uniti","oregon":"Stati Uniti","finger lakes":"Stati Uniti",
+  // Svizzera
+  "aargau":"Svizzera","valais":"Svizzera","vaud":"Svizzera","ticino":"Svizzera",
+  // Libano
+  "valle della beeka":"Libano","bekaa":"Libano","beka":"Libano",
+};
+
+function inferPaese(nazione, regione, zona){
+  if(nazione) return nazione;
+  var r = (regione||zona||"").toLowerCase().trim();
+  if(!r) return "";
+  // match esatto
+  if(_REGIONE_TO_PAESE[r]) return _REGIONE_TO_PAESE[r];
+  // match parziale (es. "Friuli Venezia Giulia" contiene "friuli")
+  var keys = Object.keys(_REGIONE_TO_PAESE);
+  for(var i=0;i<keys.length;i++){
+    if(r.indexOf(keys[i])>-1 || keys[i].indexOf(r)>-1) return _REGIONE_TO_PAESE[keys[i]];
+  }
+  return "";
+}
+
 function esc(s){var d=document.createElement("div");d.textContent=s||"";return d.innerHTML;}
 
 function _setStatus(state){
@@ -289,17 +447,20 @@ async function loadWines(){
     var pCarta = w.prezzoCarta || w.p || "";
     var pNum = parseFloat(String(pCarta).replace(/[^0-9.,]/g,"").replace(",",".")) || 0;
     // Prezzo bottiglia formattato
-    var pFmt = pCarta ? "€ " + parseFloat(String(pCarta).replace(/[^0-9.,]/g,"").replace(",",".")).toFixed(0) : "";
+    var _fmtP = function(v){ var s=parseFloat(v).toFixed(2); return s.replace(/\.00$/,"").replace(/(\.\d)0$/,"$1"); };
+    var pFmt = pCarta ? "€ " + _fmtP(parseFloat(String(pCarta).replace(/[^0-9.,]/g,"").replace(",","."))) : "";
     d[cat].push({
       id: w.id,
       n: nome,
       produttore: prod,
       annata: w.annata || "",
       p: pFmt,
-      b: w.prezzoCalice ? "€ "+parseFloat(w.prezzoCalice).toFixed(0) : "",
+      b: w.prezzoCalice ? "€ "+_fmtP(parseFloat(w.prezzoCalice)) : "",
       vitigno: w.vitigni || w.vitigno || "",
-      paese: w.nazione || w.paese || "",
-      regione: w.regione || w.zona || "",
+      regione: w.regione || "",
+      zona: w.zona || "",
+      nazione: inferPaese(w.nazione, w.regione, w.zona),
+      paese: inferPaese(w.nazione, w.regione, w.zona),
       tipologia: cat,
       qty: w.giacenza || 0,
       _p: pNum
@@ -358,7 +519,7 @@ function applyFilters(){
     var wines = (db[cat]||[]).filter(function(w){
       if(fSearch){
         var q=fSearch.toLowerCase();
-        var hay=(w.n||"")+(w.produttore||"")+(w.vitigno||"")+(w.regione||"")+(w.paese||"")+(w.annata||"");
+        var hay=(w.n||"")+(w.produttore||"")+(w.vitigno||"")+(w.regione||"")+(w.paese||"")+(w.nazione||"")+(w.annata||"");
         if(hay.toLowerCase().indexOf(q)<0) return false;
       }
       if(fState.paese && (w.paese||"").toLowerCase()!==fState.paese.toLowerCase()) return false;
@@ -393,21 +554,38 @@ function applyFilters(){
 function _buildWineRow(w,cat){
   var slug = cat.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
   var cls = "vino vino-"+slug;
-  var nome = esc(w.n)+(w.annata?"<span class=\"vino-annata\">"+esc(w.annata)+"</span>":"");
-  var sub=[], geo=[];
-  if(w.produttore) sub.push(esc(w.produttore));
-  if(w.vitigno) sub.push(esc(w.vitigno));
-  if(w.regione) geo.push(esc(w.regione));
-  if(w.paese) geo.push('<strong style="color:var(--hero2);font-size:10px">'+esc(w.paese)+'</strong>');
+
+  // 1. Nome + annata
+  var annataHtml = w.annata ? "<span class=\"vino-annata\">"+esc(w.annata)+"</span>" : "";
+  var nomeHtml = "<div class=\"vino-nome\">"+esc(w.n)+annataHtml+"</div>";
+
+  // 2. Produttore
+  var prodHtml = w.produttore
+    ? "<div class=\"vino-prod\">"+esc(w.produttore)+"</div>"
+    : "";
+
+  // 3. Vitigno
+  var vitignoHtml = w.vitigno
+    ? "<div class=\"vino-vitigno\">"+esc(w.vitigno)+"</div>"
+    : "";
+
+  // 4. Geo: zona · Regione · [NAZIONE tag] — usa i dati reali
+  var geoParts = [];
+  if(w.zona)    geoParts.push("<span class=\"vino-regione\">"+esc(w.zona)+"</span>");
+  if(w.regione && w.regione !== w.zona) geoParts.push("<span class=\"vino-regione\">"+esc(w.regione)+"</span>");
+  if(w.nazione) geoParts.push("<span class=\"vino-paese-tag\">"+esc(w.nazione)+"</span>");
+  var geoHtml = geoParts.length
+    ? "<div class=\"vino-geo\">"+geoParts.join("<span class='vino-geo-sep'>·</span>")+"</div>"
+    : "";
+
+  // 5. Prezzo
+  var prezzoHtml = "<div class=\"vino-prezzo\">"+(w.p||"—")+"</div>"
+    +(w.b ? "<div class=\"vino-bicchiere\">calice "+esc(w.b)+"</div>" : "");
+
   return "<div class=\""+cls+"\" data-id=\""+w.id+"\">"
-    +"<div class=\"vino-sx\">"
-    +"<div class=\"vino-nome\">"+nome+"</div>"
-    +(sub.length?"<div class=\"vino-sub\">"+sub.join(" · ")+"</div>":"")
-    +(geo.length?"<div class=\"vino-geo\">"+geo.join(" · ")+"</div>":"")
-    +"</div>"
-    +"<div class=\"vino-dx\"><div class=\"vino-prezzo\">"+esc(w.p)+"</div>"
-    +(w.b?"<div class=\"vino-bicchiere\">calice "+esc(w.b)+"</div>":"")
-    +"</div></div>";
+    +"<div class=\"vino-sx\">"+nomeHtml+prodHtml+vitignoHtml+geoHtml+"</div>"
+    +"<div class=\"vino-dx\">"+prezzoHtml+"</div>"
+    +"</div>";
 }
 
 function buildSidebar(){
@@ -436,7 +614,7 @@ function buildSidebar(){
   ].forEach(function(f){
     var vals = _getUniqueVals(f.field); if(!vals.length) return;
     html+="<div class=\"sb-sec\"><div class=\"sb-head\"><span class=\"sb-title\">"+f.label+"</span></div>";
-    html+="<select class=\"sb-select\" data-field=\""+f.field+"\"><option value=\"\">Tutti</option>";
+    html+="<select class=\"sb-select\" onchange=\"fState['"+f.field+"']=this.value;applyFilters();buildSidebar();\"><option value=\"\">Tutti</option>";
     vals.forEach(function(v){
       html+="<option value=\""+esc(v)+"\"" +(fState[f.field]===v?" selected":"")+">"+esc(v)+"</option>";
     });
@@ -497,7 +675,7 @@ function openModal(id){
   if(w.b) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Al calice</div><div class=\"modal-p-val\">"+esc(w.b)+"</div></div>";
   document.getElementById("modal-prezzo").innerHTML = p;
   var body="";
-  [["Produttore",w.produttore],["Paese / Nazione",w.paese],["Regione",w.regione],["Vitigno",w.vitigno],["Tipologia",w.tipologia]].forEach(function(r){
+  [["Produttore",w.produttore],["Regione",w.regione],["Zona",w.zona],["Nazione",w.nazione],["Vitigno",w.vitigno],["Tipologia",w.tipologia]].forEach(function(r){
     if(r[1]) body+="<div class=\"modal-row\"><span class=\"modal-lbl\">"+r[0]+"</span><span class=\"modal-val\">"+esc(r[1])+"</span></div>";
   });
   document.getElementById("modal-body").innerHTML = body||"<p style=\"color:var(--grey);font-size:13px\">Nessun dettaglio disponibile.</p>";

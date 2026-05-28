@@ -3,17 +3,19 @@ const SB_KEY = "sb_publishable_FnsZcIMLdfbaABqmwx3I2A_rXfRmHhY";
 const DB_USER = "default";
 
 // Ordine categorie visualizzate come "Sezioni" nella carta
-const CAT_ORDER = ["Spumante","Bianco","Macerato","Rosato","Rosso","Naturale","Dolce","Passito","Liquoroso","Altro"];
+const CAT_ORDER = ["Spumante","Bianco","Macerato","Rosato","Rosso","Naturale","Dolce","Passito","Liquoroso","Magnum","Altro"];
 const CAT_LABELS = {
   Rosso:"Rossi", Bianco:"Bianchi", Rosato:"Rosati", Spumante:"Bolle",
-  Naturale:"Naturali", Dolce:"Dolci", Passito:"Passiti", Liquoroso:"Liquorosi", Macerato:"Macerati", Altro:"Altro"
+  Naturale:"Naturali", Dolce:"Dolci", Passito:"Passiti", Liquoroso:"Liquorosi",
+  Macerato:"Macerati", Magnum:"Grandi Formati", Altro:"Altro"
 };
 
 // Mappa colori sidebar per categoria
 const CAT_COLORS = {
   Spumante:"#4a90c4", Bianco:"#c8a84b", Macerati:"#b07d3a", Macerato:"#b07d3a",
   Rosato:"#c8607a", Rosso:"#8B1A1A", Naturale:"#3a6b4a",
-  Dolce:"#9b59b6", Passito:"#c0392b", Liquoroso:"#d35400", Altro:"#78716c"
+  Dolce:"#9b59b6", Passito:"#c0392b", Liquoroso:"#d35400",
+  Magnum:"#32ADE6", Altro:"#78716c"
 };
 
 var db={}, catConfig=[], fCat="tutti", fSearch="";
@@ -130,23 +132,30 @@ async function loadWines(){
   CAT_ORDER.forEach(function(t){ d[t] = []; });
   wines.forEach(function(w){
     var rawTipo = w.tipologia || "Altro";
-    // Mappa tipologie CM nelle macro-categorie della carta
-    var cat = (function(t){
-      var BOLLE = ["Champagne","Champagne Rosè","Metodo Classico","Metodo Classico Rosato",
-                   "Rifermentato","Rifermentato Rosso","Rifermentato Rosato","Col Fondo",
-                   "Colfondo","Ancestrale","Metodo Charmat","Sidro","Sidro di Pera",
-                   "Petillant","Spumante","Bolle"];
-      if(BOLLE.indexOf(t) > -1) return "Spumante";
-      if(t==="Bianco" || t==="Bianchi" || t==="Bianko") return "Bianco";
-      if(t==="Rosso" || t==="Rossi") return "Rosso";
-      if(t==="Rosato" || t==="Rosati") return "Rosato";
-      if(t==="Macerato" || t==="Macerati" || t==="Orange") return "Macerato";
-      if(t==="Naturale") return "Naturale";
-      if(t==="Dolce" || t==="Vino Dolce") return "Dolce";
-      if(t==="Passito" || t==="Passito rosso") return "Passito";
-      if(t==="Liquoroso" || t==="Vino Liquoroso" || t==="Vino Ossidativo") return "Liquoroso";
-      return "Altro"; // tipologie non mappate → categoria Altro
-    })(rawTipo);
+    // Grandi formati → categoria dedicata indipendentemente dalla tipologia
+    var fmt = parseFloat(w.formato) || 0.75;
+    var cat;
+    if(fmt > 0.75){
+      cat = "Magnum";
+    } else {
+      // Mappa tipologie CM nelle macro-categorie della carta
+      cat = (function(t){
+        var BOLLE = ["Champagne","Champagne Rosè","Metodo Classico","Metodo Classico Rosato",
+                     "Rifermentato","Rifermentato Rosso","Rifermentato Rosato","Col Fondo",
+                     "Colfondo","Ancestrale","Metodo Charmat","Sidro","Sidro di Pera",
+                     "Petillant","Spumante","Bolle"];
+        if(BOLLE.indexOf(t) > -1) return "Spumante";
+        if(t==="Bianco" || t==="Bianchi" || t==="Bianko") return "Bianco";
+        if(t==="Rosso" || t==="Rossi") return "Rosso";
+        if(t==="Rosato" || t==="Rosati") return "Rosato";
+        if(t==="Macerato" || t==="Macerati" || t==="Orange") return "Macerato";
+        if(t==="Naturale") return "Naturale";
+        if(t==="Dolce" || t==="Vino Dolce") return "Dolce";
+        if(t==="Passito" || t==="Passito rosso") return "Passito";
+        if(t==="Liquoroso" || t==="Vino Liquoroso" || t==="Vino Ossidativo") return "Liquoroso";
+        return "Altro";
+      })(rawTipo);
+    }
     if(!d[cat]) d[cat] = [];
     // Normalizza struttura vino
     var nome = w.nome || w.nomeVino || w.n || "";
@@ -169,6 +178,7 @@ async function loadWines(){
       nazione: inferPaese(w.nazione, w.regione, w.zona),
       paese: inferPaese(w.nazione, w.regione, w.zona),
       tipologia: cat,
+      formato: fmt > 0.75 ? fmt : null,
       qty: w.giacenza || 0,
       _p: pNum
     });
@@ -262,11 +272,14 @@ function _buildWineRow(w,cat){
   var slug = cat.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
   var cls = "vino vino-"+slug;
 
-  // 1. Nome + annata inline corsivo
+  // 1. Nome + annata inline corsivo + badge formato se grande
   var annataHtml = w.annata
     ? "<span class=\"vino-annata\">"+esc(w.annata)+"</span>"
     : "";
-  var nomeHtml = "<div class=\"vino-nome\">"+esc(w.n)+annataHtml+"</div>";
+  var formatoBadge = w.formato
+    ? "<span style=\"display:inline-block;margin-left:6px;font-size:9px;font-weight:700;padding:1px 6px;border:1px solid rgba(50,173,230,.5);color:#32ADE6;background:rgba(50,173,230,.1);border-radius:3px;vertical-align:middle;letter-spacing:.04em\">"+esc(w.formato+"L")+"</span>"
+    : "";
+  var nomeHtml = "<div class=\"vino-nome\">"+esc(w.n)+annataHtml+formatoBadge+"</div>";
 
   // 2. Produttore — grassetto prominente
   var prodHtml = w.produttore
@@ -414,7 +427,7 @@ function openModal(id){
   if(w.b) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Al calice</div><div class=\"modal-p-val\">"+esc(w.b)+"</div></div>";
   document.getElementById("modal-prezzo").innerHTML = p;
   var body="";
-  [["Produttore",w.produttore],["Regione",w.regione],["Zona",w.zona],["Nazione",w.nazione],["Vitigno",w.vitigno],["Tipologia",w.tipologia]].forEach(function(r){
+  [["Produttore",w.produttore],["Formato",w.formato?(w.formato+"L"):null],["Regione",w.regione],["Zona",w.zona],["Nazione",w.nazione],["Vitigno",w.vitigno],["Tipologia",w.tipologia]].forEach(function(r){
     if(r[1]) body+="<div class=\"modal-row\"><span class=\"modal-lbl\">"+r[0]+"</span><span class=\"modal-val\">"+esc(r[1])+"</span></div>";
   });
   document.getElementById("modal-body").innerHTML = body||"<p style=\"color:var(--grey);font-size:13px\">Nessun dettaglio disponibile.</p>";

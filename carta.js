@@ -1,6 +1,18 @@
+// ─── CREDENZIALI SUPABASE ────────────────────────────────────────────────────
+// FIX: supabase-js v2 non supporta le "publishable key" (sb_publishable_...).
+// Usa la "anon / public" key dal pannello: Project Settings → API → anon public
+// (inizia con eyJhbGciOiJIUzI1NiIs…)
+// In alternativa, se SB_KEY è una publishable key, il codice prova a costruire
+// la chiamata REST diretta come fallback automatico.
 const SB_URL = "https://aznqjmhzbehpmvxnxbzs.supabase.co";
 const SB_KEY = "sb_publishable_FnsZcIMLdfbaABqmwx3I2A_rXfRmHhY";
+// ↑ Sostituisci con la tua anon key eyJ... per il funzionamento ottimale.
+//   Il fallback REST funziona ma non supporta realtime.
 const DB_USER = "default";
+
+// ── RILEVAZIONE TIPO CHIAVE ──────────────────────────────────────────────────
+// Le publishable key non funzionano con createClient → usiamo REST diretto
+var _useRestFallback = SB_KEY.startsWith("sb_publishable_") || SB_KEY.startsWith("sb_");
 
 // Ordine categorie visualizzate come "Sezioni" nella carta
 const CAT_ORDER = ["Spumante","Bianco","Macerato","Rosato","Rosso","Naturale","Dolce","Passito","Liquoroso","Magnum","Altro"];
@@ -20,13 +32,11 @@ const CAT_COLORS = {
 
 var db={}, catConfig=[], fCat="tutti", fSearch="";
 var pMin=0, pMax=500, pMaxG=500;
-var fState={paese:"",regione:"",tipologia:"",produttore:"",vitigno:""};
+var fState={paese:"",regione:"",produttore:"",vitigno:""};
 var _idxById=new Map();
 var _sb=null;
 
 // ── INFERISCE IL PAESE DALLA REGIONE ─────────────────────────────────────────
-// Usato quando w.nazione è vuota in CM. Copre tutte le regioni del reference
-// e aggiunge alias comuni italiani/francesi usati in pratica.
 var _REGIONE_TO_PAESE = {
   // Italia
   "abruzzo":"Italia","alto adige":"Italia","basilicata":"Italia","calabria":"Italia",
@@ -101,15 +111,18 @@ function inferPaese(nazione, regione, zona){
   if(nazione) return nazione;
   var r = (regione||zona||"").toLowerCase().trim();
   if(!r) return "";
-  // match esatto
   if(_REGIONE_TO_PAESE[r]) return _REGIONE_TO_PAESE[r];
-  // match parziale (es. "Friuli Venezia Giulia" contiene "friuli")
   var keys = Object.keys(_REGIONE_TO_PAESE);
   for(var i=0;i<keys.length;i++){
     if(r.indexOf(keys[i])>-1 || keys[i].indexOf(r)>-1) return _REGIONE_TO_PAESE[keys[i]];
   }
   return "";
 }
+
+// ── GESTIONE OVERFLOW BODY (modal + drawer possono coesistere su mobile) ──────
+var _overlayCount = 0;
+function _lockScroll(){ _overlayCount++; document.body.style.overflow="hidden"; }
+function _unlockScroll(){ _overlayCount=Math.max(0,_overlayCount-1); if(_overlayCount===0) document.body.style.overflow=""; }
 
 function esc(s){var d=document.createElement("div");d.textContent=s||"";return d.innerHTML;}
 
@@ -118,13 +131,39 @@ function _setStatus(state){
   var lbl=document.getElementById("sb-lbl");
   if(!dot)return;
   dot.className=state;
-  lbl.textContent={ok:"Live",sync:"Sync",err:"Offline",off:"Offline"}[state]||"DB";
+  var labels={ok:"Live",sync:"Sync...",err:"Offline",off:"Offline"};
+  lbl.textContent=labels[state]||"DB";
+}
+
+// ── FETCH DATI: supporta sia supabase-js sia REST diretto (fallback publishable key) ──
+async function _fetchWinesRaw(){
+  if(!_useRestFallback && _sb){
+    // Percorso normale: supabase-js con anon key
+    var r = await _sb.from("cm_wines").select("data").eq("user_id", DB_USER).maybeSingle();
+    if(r.error) throw r.error;
+    return (r.data && r.data.data) ? r.data.data : [];
+  } else {
+    // Fallback REST diretto per publishable key (o quando _sb non disponibile)
+    // Nota: le publishable key supportano le REST API ma non il realtime
+    var url = SB_URL + "/rest/v1/cm_wines?select=data&user_id=eq." + encodeURIComponent(DB_USER) + "&limit=1";
+    var resp = await fetch(url, {
+      headers: {
+        "apikey": SB_KEY,
+        "Authorization": "Bearer " + SB_KEY,
+        "Accept": "application/json"
+      }
+    });
+    if(!resp.ok){
+      var errText = await resp.text();
+      throw new Error("HTTP " + resp.status + ": " + errText);
+    }
+    var rows = await resp.json();
+    return (rows && rows.length && rows[0].data) ? rows[0].data : [];
+  }
 }
 
 async function loadWines(){
-  var r = await _sb.from("cm_wines").select("data").eq("user_id", DB_USER).maybeSingle();
-  if(r.error) throw r.error;
-  var wines = (r.data && r.data.data) ? r.data.data : [];
+  var wines = await _fetchWinesRaw();
   // Filtra solo vini con giacenza > 0
   wines = wines.filter(function(w){ return (w.giacenza||0) > 0; });
   // Costruisci db per categoria (tipologia)
@@ -132,13 +171,11 @@ async function loadWines(){
   CAT_ORDER.forEach(function(t){ d[t] = []; });
   wines.forEach(function(w){
     var rawTipo = w.tipologia || "Altro";
-    // Grandi formati → categoria dedicata indipendentemente dalla tipologia
     var fmt = parseFloat(w.formato) || 0.75;
     var cat;
     if(fmt > 0.75){
       cat = "Magnum";
     } else {
-      // Mappa tipologie CM nelle macro-categorie della carta
       cat = (function(t){
         var BOLLE = ["Champagne","Champagne Rosè","Metodo Classico","Metodo Classico Rosato",
                      "Rifermentato","Rifermentato Rosso","Rifermentato Rosato","Col Fondo",
@@ -157,11 +194,9 @@ async function loadWines(){
       })(rawTipo);
     }
     if(!d[cat]) d[cat] = [];
-    // Normalizza struttura vino
     var nome = w.nome || w.nomeVino || w.n || "";
     var prod = w.produttore || "";
-    // Prendi il prezzo carta dalla prima referenza o dal campo diretto
-    var pCarta = w.prezzoCarta || "";  // NO fallback: mai usare prezzoAcq o altri campi
+    var pCarta = w.prezzoCarta || "";
     var _fmtP = function(v){ var s=parseFloat(v).toFixed(2); return s.replace(/\.00$/,"").replace(/(\.\d)0$/,"$1"); };
     var pNum = pCarta ? parseFloat(String(pCarta).replace(/[^0-9.,]/g,"").replace(",",".")) || 0 : 0;
     var pFmt = pNum > 0 ? "€ " + _fmtP(pNum) : "";
@@ -171,7 +206,7 @@ async function loadWines(){
       produttore: prod,
       annata: w.annata || "",
       p: pFmt,
-      b: w.prezzoCalice ? "€ "+_fmtP(parseFloat(w.prezzoCalice)) : "",
+      b: (w.prezzoCalice||w.prezzoAlCalice) ? "€ "+_fmtP(parseFloat(w.prezzoCalice||w.prezzoAlCalice)) : "",
       vitigno: w.vitigni || w.vitigno || "",
       regione: w.regione || "",
       zona: w.zona || "",
@@ -180,6 +215,7 @@ async function loadWines(){
       tipologia: cat,
       formato: fmt > 0.75 ? fmt : null,
       qty: w.giacenza || 0,
+      note: w.noteVeloce || w.note || "",
       _p: pNum
     });
   });
@@ -194,7 +230,9 @@ async function loadWines(){
   return d;
 }
 
+// ── REALTIME (solo con anon key / supabase-js) ────────────────────────────────
 async function _sbListen(){
+  if(_useRestFallback || !_sb) return; // il realtime non funziona con publishable key
   try{
     _sb.channel("cm-wines-changes")
       .on("postgres_changes",{event:"*",schema:"public",table:"cm_wines"},function(){
@@ -206,18 +244,40 @@ async function _sbListen(){
   }catch(e){}
 }
 
+// ── POLLING FALLBACK (usato con publishable key — aggiorna ogni 60s) ──────────
+var _pollInterval = null;
+function _startPolling(){
+  if(_pollInterval) return;
+  _pollInterval = setInterval(function(){
+    _setStatus("sync");
+    loadWines().then(function(d){
+      db=d; _buildIdxById(); applyFilters(); buildSidebar(); _setStatus("ok");
+    }).catch(function(){ _setStatus("err"); });
+  }, 60000);
+}
+
 async function init(){
   _setStatus("sync");
   try{
-    _sb = supabase.createClient(SB_URL, SB_KEY);
+    if(!_useRestFallback){
+      // Percorso normale con anon key
+      _sb = supabase.createClient(SB_URL, SB_KEY);
+    }
     db = await loadWines();
     _buildIdxById();
     applyFilters(); buildSidebar(); buildSortBar();
     _setStatus("ok");
-    _sbListen();
+    if(!_useRestFallback){
+      _sbListen();
+    } else {
+      // Con publishable key: polling ogni 60s come fallback al realtime
+      _startPolling();
+    }
   }catch(e){
     _setStatus("err");
-    document.getElementById("wine-list").innerHTML="<div class=\"vuoto\">Errore caricamento.<br>Controlla la connessione.</div>";
+    var wl = document.getElementById("wine-list");
+    if(wl) wl.innerHTML="<div class=\"vuoto\">Errore caricamento dati.<br><small style='opacity:.6'>"+esc(e.message||"Controlla la connessione")+"</small></div>";
+    console.error("[carta] init error:", e);
   }
 }
 
@@ -229,7 +289,8 @@ function _buildIdxById(){
 }
 
 function applyFilters(){
-  var sortVal = document.getElementById("sort-sel") ? document.getElementById("sort-sel").value : "default";
+  var sortSel = document.getElementById("sort-sel");
+  var sortVal = sortSel ? sortSel.value : "default";
   var html=""; var total=0;
   var catsToShow = fCat==="tutti" ? catConfig.map(function(c){return c.nome;}) : [fCat];
   catsToShow.forEach(function(cat){
@@ -241,14 +302,13 @@ function applyFilters(){
       }
       if(fState.paese && (w.paese||"").toLowerCase()!==fState.paese.toLowerCase()) return false;
       if(fState.regione && (w.regione||"").toLowerCase()!==fState.regione.toLowerCase()) return false;
-      if(fState.tipologia && (w.tipologia||"").toLowerCase()!==fState.tipologia.toLowerCase()) return false;
       if(fState.produttore && (w.produttore||"").toLowerCase()!==fState.produttore.toLowerCase()) return false;
       if(fState.vitigno && !(w.vitigno||"").toLowerCase().includes(fState.vitigno.toLowerCase())) return false;
-      if(w._p<pMin || w._p>pMax) return false;
+      if(w._p<pMin || (pMax<pMaxG && w._p>pMax)) return false;
       return true;
     });
-    if(sortVal==="az") wines.sort(function(a,b){return(a.n||"").localeCompare(b.n||"");});
-    else if(sortVal==="za") wines.sort(function(a,b){return(b.n||"").localeCompare(a.n||"");});
+    if(sortVal==="az") wines.sort(function(a,b){return(a.n||"").localeCompare(b.n||"","it");});
+    else if(sortVal==="za") wines.sort(function(a,b){return(b.n||"").localeCompare(a.n||"","it");});
     else if(sortVal==="asc") wines.sort(function(a,b){return a._p-b._p;});
     else if(sortVal==="desc") wines.sort(function(a,b){return b._p-a._p;});
     if(!wines.length) return;
@@ -281,7 +341,7 @@ function _buildWineRow(w,cat){
     : "";
   var nomeHtml = "<div class=\"vino-nome\">"+esc(w.n)+annataHtml+formatoBadge+"</div>";
 
-  // 2. Produttore — grassetto prominente
+  // 2. Produttore
   var prodHtml = w.produttore
     ? "<div class=\"vino-prod\">"+esc(w.produttore)+"</div>"
     : "";
@@ -300,7 +360,7 @@ function _buildWineRow(w,cat){
     ? "<div class=\"vino-geo\">"+geoParts.join("<span class='vino-geo-sep'>·</span>")+"</div>"
     : "";
 
-  // 5. Prezzo — separatore verticale via CSS su .vino-dx
+  // 5. Prezzo
   var prezzoHtml = "<div class=\"vino-prezzo\">"+(w.p||"—")+"</div>"
     +(w.b ? "<div class=\"vino-bicchiere\">calice "+esc(w.b)+"</div>" : "");
 
@@ -312,7 +372,15 @@ function _buildWineRow(w,cat){
 
 function buildSidebar(){
   var html="";
-  // Sezione Categorie come accordion (chiuso di default, aperto se filtro attivo)
+  // ── Search box (sidebar desktop + drawer mobile) ──────────────────
+  var sv = fSearch||"";
+  html+="<div class=\"sb-search-wrap\">"
+    +"<input class=\"sb-search-input\" id=\"sb-search-input\" type=\"search\" "
+    +"placeholder=\"Cerca vino, produttore…\" value=\""+esc(sv)+"\" "
+    +"oninput=\"onSearch(this)\" autocomplete=\"off\">"
+    +(sv?"<button class=\"sb-search-clear\" onclick=\"clearSearch()\">×</button>":"")
+    +"</div>";
+  // ── Sezione Categorie come accordion
   var catOpen = (fCat !== "tutti");
   html+="<div class=\"sb-acc-wrap"+(catOpen?" open":"")+"\" id=\"wrap-acc-cat\">"
     +"<div class=\"sb-acc-head\" onclick=\"_toggleAcc('acc-cat')\">"
@@ -331,18 +399,17 @@ function buildSidebar(){
       +"<span class=\"cat-count\">"+n+"</span></li>";
   });
   html+="</ul></div></div>";
-  // Filtri accordion — chiusi di default, aperti se filtro attivo
+  // Filtri accordion
   [
     {field:"paese",      label:"Paese"},
     {field:"regione",    label:"Regione"},
-    {field:"tipologia",  label:"Tipologia"},
     {field:"produttore", label:"Produttore"},
     {field:"vitigno",    label:"Vitigno"}
   ].forEach(function(f){
     var vals = _getUniqueVals(f.field); if(!vals.length) return;
     var isOpen = !!(fState[f.field]);
     var uid = "acc-"+f.field;
-    var tuttiLabel = (f.field==="paese"||f.field==="regione"||f.field==="tipologia") ? "Tutti" : "Tutte";
+    var tuttiLabel = (f.field==="paese"||f.field==="regione") ? "Tutti" : "Tutte";
     html+="<div class=\"sb-acc-wrap"+(isOpen?" open":"")+"\" id=\"wrap-"+uid+"\">"
       +"<div class=\"sb-acc-head\" onclick=\"_toggleAcc('"+uid+"')\">"
       +"<span class=\"sb-acc-title\">"+f.label+"</span>"
@@ -353,13 +420,13 @@ function buildSidebar(){
         +"onclick=\"fState['"+f.field+"']='';applyFilters();buildSidebar();\">"+tuttiLabel+"</li>";
     vals.forEach(function(v){
       var isAct = fState[f.field]===v;
-      html+="<li class=\"sb-filter-item"+(isAct?" active":"")+"\" "
-        +"onclick=\"fState['"+f.field+"']='"+v.replace(/\\/g,"\\\\").replace(/'/g,"\\'")+"';applyFilters();buildSidebar();\">"
+      html+="<li class=\"sb-filter-item"+(isAct?" active":"")+" sb-fval\" "
+        +"data-field=\""+esc(f.field)+"\" data-val=\""+esc(v)+"\">"
         +esc(v)+"</li>";
     });
     html+="</ul></div></div>";
   });
-  // Prezzo accordion — chiuso di default, aperto se filtro attivo
+  // Prezzo accordion
   var prezzoOpen = (pMin>0||pMax<pMaxG);
   html+="<div class=\"sb-acc-wrap"+(prezzoOpen?" open":"")+"\" id=\"wrap-acc-prezzo\">"
     +"<div class=\"sb-acc-head\" onclick=\"_toggleAcc('acc-prezzo')\">"
@@ -378,6 +445,13 @@ function buildSidebar(){
   document.querySelectorAll(".cat-item[data-cat], .sb-btn[data-cat]").forEach(function(el){
     el.addEventListener("click",function(){ setFCat(el.getAttribute("data-cat")); });
   });
+  // BUG5 fix: event delegation per filtri con apostrofi nei valori
+  document.querySelectorAll("#sidebar-inner .sb-fval[data-field]").forEach(function(el){
+    el.addEventListener("click",function(){
+      fState[el.getAttribute("data-field")] = el.getAttribute("data-val");
+      applyFilters(); buildSidebar();
+    });
+  });
 }
 
 function _toggleAcc(id){
@@ -387,7 +461,8 @@ function _toggleAcc(id){
 }
 
 function buildSortBar(){
-  document.getElementById("sort-bar-wrap").innerHTML="<span class=\"sort-label\">Ordina</span>"
+  var wrap = document.getElementById("sort-bar-wrap"); if(!wrap) return;
+  wrap.innerHTML="<span class=\"sort-label\">Ordina</span>"
     +"<select class=\"sort-select\" id=\"sort-sel\" onchange=\"applyFilters()\"><option value=\"default\">Default</option>"
     +"<option value=\"az\">A → Z</option><option value=\"za\">Z → A</option>"
     +"<option value=\"asc\">Prezzo ↑</option><option value=\"desc\">Prezzo ↓</option></select>";
@@ -406,50 +481,140 @@ function _getUniqueVals(field){
       }
     });
   });
-  return Array.from(set).sort();
+  return Array.from(set).sort(function(a,b){ return a.localeCompare(b,"it"); });
 }
 function setFCat(cat){ fCat=cat; applyFilters(); buildSidebar(); }
 function onRangeMin(v){ v=parseInt(v); if(v>pMax-5)v=pMax-5; pMin=v; applyFilters(); _updateRangeFill(); var el=document.getElementById("range-min"); if(el)el.value=v; }
 function onRangeMax(v){ v=parseInt(v); if(v<pMin+5)v=pMin+5; pMax=v; applyFilters(); _updateRangeFill(); var el=document.getElementById("range-max"); if(el)el.value=v; }
 function _updateRangeFill(){ var fill=document.getElementById("range-fill"); if(!fill)return; var p1=pMin/pMaxG*100,p2=pMax/pMaxG*100; fill.style.left=p1+"%"; fill.style.width=(p2-p1)+"%"; }
-function onSearch(inp){ fSearch=inp.value; var cl=document.getElementById("search-clear"); if(cl)cl.classList.toggle("show",!!fSearch); applyFilters(); }
-function clearSearch(){ fSearch=""; var inp=document.getElementById("search-input"); if(inp)inp.value=""; var cl=document.getElementById("search-clear"); if(cl)cl.classList.remove("show"); applyFilters(); }
-function resetAll(){ fCat="tutti"; fSearch=""; pMin=0; pMax=pMaxG; fState={paese:"",regione:"",tipologia:"",produttore:"",vitigno:""}; var inp=document.getElementById("search-input"); if(inp)inp.value=""; var cl=document.getElementById("search-clear"); if(cl)cl.classList.remove("show"); applyFilters(); buildSidebar(); }
+function onSearch(inp){ fSearch=inp.value; var cl=document.getElementById("search-clear"); if(cl)cl.classList.toggle("show",!!fSearch); var sb=document.getElementById("sb-search-input"); if(sb&&sb!==inp)sb.value=fSearch; applyFilters(); }
+function clearSearch(){ fSearch=""; var inp=document.getElementById("search-input"); if(inp)inp.value=""; var cl=document.getElementById("search-clear"); if(cl)cl.classList.remove("show"); var sb=document.getElementById("sb-search-input"); if(sb)sb.value=""; applyFilters(); }
+function resetAll(){ fCat="tutti"; fSearch=""; pMin=0; pMax=pMaxG; fState={paese:"",regione:"",produttore:"",vitigno:""}; var inp=document.getElementById("search-input"); if(inp)inp.value=""; var cl=document.getElementById("search-clear"); if(cl)cl.classList.remove("show"); applyFilters(); buildSidebar(); }
 
+// ── MODAL DETTAGLIO VINO ──────────────────────────────────────────────────────
 function openModal(id){
   var item=_idxById.get(id); if(!item)return;
   var w=item.v, cat=item.c;
-  document.getElementById("modal-cat").textContent = CAT_LABELS[cat]||cat;
-  document.getElementById("modal-nome").textContent = w.n;
-  document.getElementById("modal-annata").textContent = w.annata?"Annata "+w.annata:"";
+
+  var catEl = document.getElementById("modal-cat");
+  var nomeEl = document.getElementById("modal-nome");
+  var annataEl = document.getElementById("modal-annata");
+  var prezzoEl = document.getElementById("modal-prezzo");
+  var bodyEl = document.getElementById("modal-body");
+  var noteEl = document.getElementById("modal-note-wrap");
+
+  if(catEl) catEl.textContent = CAT_LABELS[cat]||cat;
+  if(nomeEl) nomeEl.textContent = w.n;
+  if(annataEl) annataEl.textContent = w.annata?"Annata "+w.annata:"";
+
   var p="";
   if(w.p) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Bottiglia</div><div class=\"modal-p-val\">"+esc(w.p)+"</div></div>";
   if(w.b) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Al calice</div><div class=\"modal-p-val\">"+esc(w.b)+"</div></div>";
-  document.getElementById("modal-prezzo").innerHTML = p;
+  if(prezzoEl) prezzoEl.innerHTML = p;
+
   var body="";
-  [["Produttore",w.produttore],["Formato",w.formato?(w.formato+"L"):null],["Regione",w.regione],["Zona",w.zona],["Nazione",w.nazione],["Vitigno",w.vitigno],["Tipologia",w.tipologia]].forEach(function(r){
+  [
+    ["Produttore", w.produttore],
+    ["Formato", w.formato?(w.formato+"L"):null],
+    ["Regione", w.regione],
+    ["Zona", w.zona && w.zona!==w.regione ? w.zona : null],
+    ["Nazione", w.nazione],
+    ["Vitigno", w.vitigno],
+    ["Tipologia", w.tipologia]
+  ].forEach(function(r){
     if(r[1]) body+="<div class=\"modal-row\"><span class=\"modal-lbl\">"+r[0]+"</span><span class=\"modal-val\">"+esc(r[1])+"</span></div>";
   });
-  document.getElementById("modal-body").innerHTML = body||"<p style=\"color:var(--grey);font-size:13px\">Nessun dettaglio disponibile.</p>";
-  document.getElementById("modal").classList.add("show");
+  if(bodyEl) bodyEl.innerHTML = body||"<p style=\"color:var(--grey);font-size:13px\">Nessun dettaglio disponibile.</p>";
+
+  // Nota sommelier — mostra solo se presente
+  if(noteEl){
+    if(w.note && w.note.trim()){
+      noteEl.style.display="block";
+      var noteTxtEl = document.getElementById("modal-note-text");
+      if(noteTxtEl) noteTxtEl.textContent = w.note;
+    } else {
+      noteEl.style.display="none";
+    }
+  }
+
+  var modal = document.getElementById("modal");
+  if(modal) modal.classList.add("show");
+
+  // Previeni scroll body su mobile quando il modal è aperto
+  _lockScroll();
 }
-function closeModal(e){ if(e.target===document.getElementById("modal")) closeModalDirect(); }
-function closeModalDirect(){ document.getElementById("modal").classList.remove("show"); }
+function closeModal(e){ if(e && e.target!==document.getElementById("modal")) return; closeModalDirect(); }
+function closeModalDirect(){
+  var modal = document.getElementById("modal");
+  if(modal) modal.classList.remove("show");
+  _unlockScroll();
+}
 document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeModalDirect(); });
 
-function _countActiveFilters(){ var n=0; if(fCat!=="tutti")n++; if(fSearch)n++; if(pMin>0||pMax<pMaxG)n++; if(fState.paese)n++; if(fState.regione)n++; if(fState.tipologia)n++; if(fState.produttore)n++; if(fState.vitigno)n++; return n; }
-function _syncFabBadge(){ var n=_countActiveFilters(); var b=document.getElementById("fab-badge"); if(b){b.textContent=n;b.classList.toggle("show",n>0);} }
+// ── DRAWER FILTRI MOBILE ──────────────────────────────────────────────────────
+function _countActiveFilters(){ var n=0; if(fCat!=="tutti")n++; if(fSearch)n++; if(pMin>0||pMax<pMaxG)n++; if(fState.paese)n++; if(fState.regione)n++;  if(fState.produttore)n++; if(fState.vitigno)n++; return n; }
+function _syncFabBadge(){
+  var n=_countActiveFilters();
+  var b=document.getElementById("fab-badge");
+  if(b){ b.textContent=n; b.classList.toggle("show",n>0); }
+  // Aggiorna anche il contatore nel drawer handle se visibile
+  var dh = document.getElementById("drawer-handle-count");
+  if(dh){ dh.textContent = n>0 ? " ("+n+")" : ""; }
+}
+
 function openDrawer(){
   var body=document.getElementById("drawer-body");
   var src=document.getElementById("sidebar-inner");
+  if(!body || !src) return;
   body.innerHTML=src.innerHTML;
   document.getElementById("filter-drawer").classList.add("open");
   document.getElementById("drawer-overlay").classList.add("show");
-  document.body.style.overflow="hidden";
+  _lockScroll();
+  // Ricollega i listener dopo innerHTML replace
   document.querySelectorAll("#drawer-body .cat-item[data-cat], #drawer-body .sb-btn[data-cat]").forEach(function(el){
     el.addEventListener("click",function(){ setFCat(el.getAttribute("data-cat")); closeDrawer(); });
   });
+  // BUG5 fix: event delegation per filtri con apostrofi nei valori (drawer)
+  document.querySelectorAll("#drawer-body .sb-fval[data-field]").forEach(function(el){
+    el.addEventListener("click",function(){
+      fState[el.getAttribute("data-field")] = el.getAttribute("data-val");
+      applyFilters(); buildSidebar(); closeDrawer();
+    });
+  });
+  // Ricollega range sliders nel drawer
+  var rMin = body.querySelector("#range-min");
+  var rMax = body.querySelector("#range-max");
+  if(rMin) rMin.addEventListener("input", function(){ onRangeMin(this.value); _syncDrawerRangeFill(); });
+  if(rMax) rMax.addEventListener("input", function(){ onRangeMax(this.value); _syncDrawerRangeFill(); });
 }
-function closeDrawer(){ document.getElementById("filter-drawer").classList.remove("open"); document.getElementById("drawer-overlay").classList.remove("show"); document.body.style.overflow=""; _syncFabBadge(); }
+function _syncDrawerRangeFill(){
+  var fill = document.querySelector("#drawer-body #range-fill");
+  if(!fill) return;
+  var p1=pMin/pMaxG*100, p2=pMax/pMaxG*100;
+  fill.style.left=p1+"%"; fill.style.width=(p2-p1)+"%";
+}
+function closeDrawer(){
+  var fd = document.getElementById("filter-drawer");
+  var ov = document.getElementById("drawer-overlay");
+  if(fd) fd.classList.remove("open");
+  if(ov) ov.classList.remove("show");
+  _unlockScroll();
+  _syncFabBadge();
+}
+
+// ── TOUCH SWIPE per chiudere il drawer trascinando verso il basso ─────────────
+(function(){
+  var startY=0, drawerEl=null;
+  document.addEventListener("touchstart",function(e){
+    drawerEl = document.getElementById("filter-drawer");
+    if(!drawerEl || !drawerEl.classList.contains("open")) return;
+    startY = e.touches[0].clientY;
+  },{passive:true});
+  document.addEventListener("touchend",function(e){
+    if(!drawerEl || !drawerEl.classList.contains("open")) return;
+    var dy = e.changedTouches[0].clientY - startY;
+    if(dy > 80) closeDrawer(); // swipe down > 80px chiude il drawer
+  },{passive:true});
+})();
 
 init();

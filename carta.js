@@ -29,7 +29,7 @@ const CAT_COLORS = {
 var currentView = 'calice'; // 'calice' | 'mescita' | 'cantina'
 var db={}, catConfig=[], fCat="tutti", fSearch="";
 var pMin=0, pMax=500, pMaxG=500;
-var fState={paese:"",regione:"",produttore:"",vitigno:""};
+var fState={paese:"",regione:"",produttore:"",vitigno:"",annata:""};
 var _idxById=new Map();
 var _sb=null;
 
@@ -254,6 +254,7 @@ function _matchesFilters(w){
   if(fState.regione&&(w.regione||"").toLowerCase()!==fState.regione.toLowerCase()) return false;
   if(fState.produttore&&(w.produttore||"").toLowerCase()!==fState.produttore.toLowerCase()) return false;
   if(fState.vitigno&&!(w.vitigno||"").toLowerCase().includes(fState.vitigno.toLowerCase())) return false;
+  if(fState.annata&&(w.annata||"").toString()!==fState.annata) return false;
   if(w._p>0&&w._p<pMin) return false;
   if(pMax<pMaxG&&w._p>pMax) return false;
   return true;
@@ -290,7 +291,7 @@ function applyFilters(){
   });
 
   var rc=document.getElementById("results-count");
-  var viewLabel=currentView==='calice'?"al calice":currentView==='mescita'?"in mescita":"in cantina";
+  var viewLabel=currentView==='calice'?"al calice":currentView==='mescita'?"carta breve":"in cantina";
   if(rc) rc.textContent=total+" etichett"+(total===1?"a":"e")+" "+viewLabel;
   var wl=document.getElementById("wine-list");
   if(wl) wl.innerHTML=html||"<div class=\"vuoto\">Nessun vino trovato.</div>";
@@ -399,8 +400,7 @@ function setViewMobile(view){
   }
   if(back) back.style.display="flex";
   document.body.classList.add("mobile-list-view");
-  var mHero=document.getElementById("mobile-hero");
-  if(mHero) mHero.style.display="";
+  // mobile-hero nascosto via CSS
   applyFilters(); buildSidebar();
 }
 
@@ -414,8 +414,7 @@ function backToLanding(){
   }
   if(back) back.style.display="none";
   document.body.classList.remove("mobile-list-view");
-  var mHero=document.getElementById("mobile-hero");
-  if(mHero) mHero.style.display="none";
+  // mobile-hero nascosto via CSS
 }
 
 function buildSidebar(){
@@ -423,7 +422,7 @@ function buildSidebar(){
   var html="";
   var catOpen=(fCat!=="tutti");
   // Titolo sezione categoria dipende dalla vista
-  var catTitle = currentView==='mescita' ? "Categorie in Mescita" : "Categoria";
+  var catTitle = currentView==='mescita' ? "Carta Breve" : "Categoria";
   html+="<div class=\"sb-acc-wrap"+(catOpen?" open":"")+" \" id=\"wrap-acc-cat\">"
     +"<div class=\"sb-acc-head\" onclick=\"_toggleAcc(this)\">"
     +"<span class=\"sb-acc-title\">"+catTitle+"</span>"
@@ -447,9 +446,11 @@ function buildSidebar(){
       {field:"paese",label:"Paese"},
       {field:"regione",label:"Regione"},
       {field:"produttore",label:"Produttore"},
-      {field:"vitigno",label:"Vitigno"}
+      {field:"vitigno",label:"Vitigno"},
+      {field:"annata",label:"Annata"}
     ].forEach(function(f){
       var vals=_getUniqueVals(f.field); if(!vals.length) return;
+      if(f.field==="annata") vals=vals.slice().sort(function(a,b){ return parseInt(b)||0-(parseInt(a)||0); });
       var isOpen=!!(fState[f.field]);
       var uid="acc-"+f.field;
       var tuttiLabel=(f.field==="paese"||f.field==="regione")?"Tutti":"Tutte";
@@ -586,7 +587,7 @@ function closeModalDirect(){ var modal=document.getElementById("modal"); if(moda
 document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeModalDirect(); });
 
 // ── DRAWER FILTRI MOBILE ──────────────────────────────────────────────────────
-function _countActiveFilters(){ var n=0; if(fCat!=="tutti")n++; if(fSearch)n++; if(pMin>0||pMax<pMaxG)n++; if(fState.paese)n++; if(fState.regione)n++; if(fState.produttore)n++; if(fState.vitigno)n++; return n; }
+function _countActiveFilters(){ var n=0; if(fCat!=="tutti")n++; if(fSearch)n++; if(pMin>0||pMax<pMaxG)n++; if(fState.paese)n++; if(fState.regione)n++; if(fState.produttore)n++; if(fState.vitigno)n++; if(fState.annata)n++; return n; }
 function _syncFabBadge(){
   var n=_countActiveFilters();
   var b=document.getElementById("fab-badge");

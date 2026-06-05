@@ -456,32 +456,31 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 #filter-drawer .btn-reset-all{color:var(--ink-4);padding:10px 0}
 #filter-drawer .btn-reset-all:hover{color:var(--ink);background:none}
 .filter-fab{
-  display:none;position:fixed;bottom:24px;right:20px;
+  display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
   z-index:90;
-  width:44px;height:44px;
+  height:44px;padding:0 22px;
   background:var(--ink);color:var(--bg);
-  border:none;border-radius:0;
-  font-family:var(--font-sans);font-size:9px;font-weight:500;
-  letter-spacing:.08em;text-transform:uppercase;
-  align-items:center;justify-content:center;gap:0;
+  border:none;border-radius:22px;
+  font-family:var(--font-sans);font-size:10px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+  align-items:center;justify-content:center;gap:8px;
   cursor:pointer;
-  box-shadow:0 2px 12px rgba(26,22,18,.18);
-  transition:background .15s;
+  box-shadow:0 4px 20px rgba(26,22,18,.28);
+  transition:background .15s,box-shadow .15s;
+  white-space:nowrap;
 }
-.filter-fab:hover{background:var(--ink-2)}
-/* Icona filtri: due linee orizzontali con pallino (via text) */
-.filter-fab .fab-icon{font-size:14px;line-height:1}
+.filter-fab:active{background:var(--ink-2);box-shadow:0 2px 8px rgba(26,22,18,.2)}
+.filter-fab .fab-icon{font-size:13px;line-height:1;opacity:.8}
 .fab-badge{
-  position:absolute;top:-4px;right:-4px;
-  width:16px;height:16px;
+  display:none;
   background:var(--bg);color:var(--ink);
-  border:1px solid var(--ink);border-radius:0;
-  font-family:var(--font-sans);font-size:9px;font-weight:500;
-  display:none;align-items:center;justify-content:center;
+  border-radius:10px;
+  font-family:var(--font-sans);font-size:9px;font-weight:600;
+  padding:1px 6px;
   font-variant-numeric:tabular-nums;
-  line-height:1;
+  line-height:1.4;
 }
-.fab-badge.show{display:flex}
+.fab-badge.show{display:inline}
 
 /* ════════════════════════════════════════════════════════════════
    MOBILE (≤1023px)
@@ -489,6 +488,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 @media(max-width:1023px){
   body>.sidebar-col{display:none}
   .filter-fab{display:flex}
+  #mobile-hero{display:none!important}
   .mobile-landing{
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     min-height:100vh;padding:40px 24px 60px;
@@ -523,12 +523,16 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   .btn-back-mobile{
     display:flex!important;align-items:center;gap:8px;
     position:fixed;top:0;left:0;right:0;z-index:49;
-    background:var(--bg);color:var(--ink);
-    border-bottom:1px solid var(--line);
-    padding:12px 16px;
+    background:var(--hero2);color:rgba(255,255,255,.85);
+    border-bottom:none;
+    padding:13px 18px;
     font-family:var(--font-sans);font-size:9px;font-weight:400;
-    letter-spacing:.1em;text-transform:uppercase;
-    border-top:none;border-left:none;border-right:none;cursor:pointer;
+    letter-spacing:.12em;text-transform:uppercase;
+    border:none;cursor:pointer;
+  }
+  .btn-back-mobile::before{
+    content:"←";font-size:14px;opacity:.7;margin-right:2px;
+    font-weight:300;letter-spacing:0;
   }
   body.mobile-list-view .wine-col{padding-top:44px}
   .hero{background:var(--hero);padding:28px 16px 18px;text-align:center;position:relative;overflow:hidden}
@@ -576,7 +580,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
       <span>Al calice</span><span class="btn-arrow">→</span>
     </button>
     <button class="mobile-nav-btn" onclick="setViewMobile('mescita')">
-      <span>In mescita</span><span class="btn-arrow">→</span>
+      <span>Carta Breve</span><span class="btn-arrow">→</span>
     </button>
     <button class="mobile-nav-btn" onclick="setViewMobile('cantina')">
       <span>Cantina completa</span><span class="btn-arrow">→</span>
@@ -585,7 +589,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 </div>
 
 <!-- ── BACK BUTTON MOBILE ── -->
-<button class="btn-back-mobile" id="btn-back-mobile" style="display:none" onclick="backToLanding()">← Indietro</button>
+<button class="btn-back-mobile" id="btn-back-mobile" style="display:none" onclick="backToLanding()">Indietro</button>
 
 <!-- ── DESKTOP SIDEBAR ── -->
 <div class="sidebar-col">
@@ -603,7 +607,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
       Al Calice
     </button>
     <button class="btn-view" data-view="mescita" onclick="setView('mescita')">
-      In Mescita
+      Carta Breve
     </button>
     <button class="btn-view" data-view="cantina" onclick="setView('cantina')">
       Cantina
@@ -677,7 +681,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   <div class="drawer-apply"><button onclick="closeDrawer()">Mostra risultati</button></div>
 </div>
 <button class="filter-fab" id="filter-fab" onclick="openDrawer()">
-  <span class="fab-icon">≡</span><span class="fab-badge" id="fab-badge">0</span>
+  <span class="fab-icon">≡</span> Filtri <span class="fab-badge" id="fab-badge">0</span>
 </button>
 
 <div id="sb-status" title="Stato connessione live">

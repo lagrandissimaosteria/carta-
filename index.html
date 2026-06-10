@@ -87,7 +87,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     display:flex;flex-direction:column;gap:8px;
   }
   .btn-view{
-    display:flex;align-items:flex-start;justify-content:space-between;gap:0;
+    display:flex;align-items:flex-start;flex-direction:column;gap:3px;
     width:100%;padding:13px 20px;
     border:1px solid rgba(255,255,255,.1);
     border-radius:0;
@@ -98,31 +98,16 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     transition:background .18s,color .18s,border-color .18s;
     position:relative;overflow:hidden;
     text-align:left;
-    flex-direction:column;gap:3px;
   }
   .btn-view::before{display:none}
   .btn-view .btn-icon{display:none}
   .btn-view-sub{
-    font-size:8px;letter-spacing:.04em;text-transform:none;
-    font-weight:300;opacity:0;
-    transition:opacity .18s;
-    line-height:1.4;
-    color:rgba(255,255,255,.35);
-    display:block;
+    font-size:8px;letter-spacing:.03em;text-transform:none;font-weight:300;
+    opacity:0;transition:opacity .18s;color:rgba(255,255,255,.35);display:block;
   }
-  .btn-view:hover .btn-view-sub,
-  .btn-view.active .btn-view-sub{opacity:1}
-  .btn-view:hover{
-    background:rgba(255,255,255,.07);
-    color:rgba(255,255,255,.75);
-    border-color:rgba(255,255,255,.18);
-  }
-  .btn-view.active{
-    background:rgba(255,255,255,.1);
-    color:rgba(255,255,255,.95);
-    border-color:rgba(255,255,255,.25);
-    font-weight:500;
-  }
+  .btn-view:hover .btn-view-sub,.btn-view.active .btn-view-sub{opacity:1}
+  .btn-view:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);border-color:rgba(255,255,255,.18)}
+  .btn-view.active{background:rgba(255,255,255,.1);color:rgba(255,255,255,.95);border-color:rgba(255,255,255,.25);font-weight:500}
 
   /* ── FILTRI ── */
   .sidebar-filters{
@@ -357,11 +342,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   /* classi legacy — tenute per sicurezza ma non usate dal nuovo markup */
 }
 .main-content{padding:20px 20px 40px}
-/* Nessuna sottolineatura su testi vino (il browser spellcheck non tocca elementi non-editable, ma preveniamo override) */
-.w-nome,.w-meta,.w-prod,.w-vitigno,.w-geo,.w-annata,.w-price,.w-calice,.sezione-titolo{
-  text-decoration:none;
-  -webkit-text-decoration:none;
-}
+.vuoto{padding:40px 20px;text-align:center;color:var(--grey);font-size:14px;line-height:1.8}
 /* accent color ora via --accent CSS custom property (inline su ogni .vino) */
 /* classi slug rimosse — gestite da w-accent-bar */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:200;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
@@ -505,11 +486,12 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
    ════════════════════════════════════════════════════════════════ */
 @media(max-width:1023px){
   body>.sidebar-col{display:none}
-  .filter-fab{display:flex}
   #mobile-hero{display:none!important}
+
+  /* ── LANDING ── */
   .mobile-landing{
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    min-height:100vh;padding:0 32px 0;
+    min-height:100vh;padding:0 32px;
     background:linear-gradient(175deg,#304d65 0%,#1e3347 60%,#162840 100%);
     position:fixed;inset:0;z-index:50;
     transition:opacity .22s ease,transform .22s ease;
@@ -538,69 +520,110 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   .mobile-nav-btn:hover,.mobile-nav-btn:active{color:rgba(255,255,255,.95)}
   .mobile-nav-btn .btn-arrow{font-size:16px;opacity:.35;transition:opacity .18s,transform .18s;flex-shrink:0}
   .mobile-nav-btn:hover .btn-arrow{opacity:.8;transform:translateX(3px)}
-  /* FAB nascosto sulla landing, visibile solo in list view */
+
+  /* FAB: nascosto sulla landing, visibile solo in list view */
   .filter-fab{display:none!important}
   body.mobile-list-view .filter-fab{display:flex!important}
+
+  /* ── BACK BUTTON ── */
   .btn-back-mobile{
     display:flex!important;align-items:center;gap:8px;
     position:fixed;top:0;left:0;right:0;z-index:49;
     background:var(--hero2);color:rgba(255,255,255,.85);
-    border-bottom:none;
     padding:14px 18px;
-    font-family:var(--font-sans);font-size:10px;font-weight:400;
+    font-family:var(--font-sans);font-size:9px;font-weight:400;
     letter-spacing:.12em;text-transform:uppercase;
-    border:none;cursor:pointer;
+    border:none;border-bottom:none;cursor:pointer;
   }
-  .btn-back-mobile::before{
-    content:"←";font-size:14px;opacity:.7;margin-right:2px;
-    font-weight:300;letter-spacing:0;
-  }
+  .btn-back-mobile::before{content:"←";font-size:14px;opacity:.7;margin-right:2px;font-weight:300;letter-spacing:0}
+
+  /* ── WINE LIST ── */
   body.mobile-list-view .wine-col{padding-top:44px}
-  .hero{background:var(--hero);padding:28px 16px 18px;text-align:center;position:relative;overflow:hidden}
-  .hero-doodle{position:absolute;top:0;height:100%;pointer-events:none;object-fit:contain;mix-blend-mode:screen;opacity:.25}
-  .hero-doodle.left{left:-10px;transform:scaleX(-1)}
-  .hero-doodle.right{right:-10px}
-  .hero-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:10px}
-  .hero-logo{width:180px;mix-blend-mode:screen;opacity:.95}
   .wine-col{display:flex;flex-direction:column;min-height:100vh}
   .page-wrap{display:block;width:100%}
-  .main-content{padding:8px 4px}
-  .sort-bar{padding:6px 8px;flex-wrap:wrap;gap:6px}
   .sezione{margin-bottom:20px}
-  .sezione-titolo{font-size:11px;padding:12px 4px 10px}
+  .sezione-titolo{font-size:10px;padding:12px 14px 10px;letter-spacing:.14em}
   .vino{padding:12px 10px 12px 14px;gap:8px}
-  .vino-nome{font-size:14px}
-  .vino-dx{min-width:52px}
-  .vino-prezzo{font-size:15px}
+  .w-body{padding-left:10px}
   .modal-overlay{padding:0;align-items:flex-end;backdrop-filter:none}
   .modal-card{max-width:100%;max-height:92vh;border-radius:0;margin:0}
   .modal-nome{font-size:18px}
   .modal-body{padding:14px 16px}
   .modal-prezzo{padding:10px 16px}
-  /* Search bar mobile: ben visibile, non trasparente */
-  .search-bar-wrap{
-    padding:12px 14px 8px;
-    max-height:none!important;opacity:1!important;overflow:visible!important;
+
+  /* ── HEADER STICKY: search + sort + count come blocco unico ── */
+  /* Raggruppa visivamente i tre elementi separati senza toccare l'HTML */
+  .search-bar-wrap,
+  #sort-bar-wrap,
+  .main-content>.results-bar{
+    position:sticky;z-index:40;
     background:var(--bg);
+  }
+  /* Search bar */
+  .search-bar-wrap{
+    top:44px;
+    padding:10px 14px 6px;
+    max-height:none!important;opacity:1!important;overflow:visible!important;
+    border-top:none;
+  }
+  .search-bar-inner{position:relative}
+  /* Icona lente SVG via background-image — nessun pseudo-elemento flottante */
+  .search-bar-wrap .search-input{
+    width:100%;
+    padding:10px 36px 10px 38px;
+    border:1px solid var(--line-s);
+    border-radius:8px;
+    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20' fill='none'%3E%3Ccircle cx='8.5' cy='8.5' r='5.5' stroke='%238C7E72' stroke-width='1.5'/%3E%3Cpath d='M13 13L17 17' stroke='%238C7E72' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat 11px center;
+    font-family:var(--font-sans);font-size:14px;color:var(--ink);
+    outline:none;-webkit-appearance:none;
+    box-shadow:0 1px 4px rgba(0,0,0,.05);
+    transition:border-color .18s,box-shadow .18s;
+  }
+  .search-bar-wrap .search-input:focus{
+    border-color:var(--hero);
+    box-shadow:0 0 0 3px rgba(48,77,101,.1);
+  }
+  .search-bar-wrap .search-input::placeholder{color:var(--ink-4)}
+  .search-clear{
+    position:absolute;right:10px;top:50%;transform:translateY(-50%);
+    font-size:17px;color:var(--ink-4);display:none;
+    line-height:1;padding:2px 4px;background:none;border:none;cursor:pointer;
+  }
+  .search-clear.show{display:block}
+  /* Sort bar: sotto la search, stessa fascia sticky */
+  #sort-bar-wrap{
+    top:calc(44px + 50px); /* altezza back-btn + search */
+    padding:4px 14px 6px;
+    display:flex;align-items:center;justify-content:space-between;
     border-bottom:1px solid var(--line);
   }
-  .search-bar-wrap .search-input{
-    border-radius:6px;
-    border:1.5px solid var(--line-s);
-    box-shadow:0 1px 4px rgba(0,0,0,.06);
-    background:#fff;
-    padding:11px 40px 11px 36px;
-    font-size:15px;
+  .sort-bar{display:flex;align-items:center;gap:6px;padding:0;border:none;background:none}
+  .sort-label{
+    font-family:var(--font-sans);font-size:9px;font-weight:500;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4);
   }
-  .search-bar-inner::before{
-    content:"🔍";
-    position:absolute;left:11px;top:50%;transform:translateY(-50%);
-    font-size:14px;pointer-events:none;opacity:.45;
+  .sort-select{
+    border:none;border-bottom:1px solid var(--line-s);
+    background:transparent;color:var(--ink-2);
+    font-family:var(--font-sans);font-size:11px;
+    padding:2px 4px;outline:none;cursor:pointer;
+    -webkit-appearance:none;appearance:none;
   }
-  .sezione-titolo{padding-left:12px}
-  .w-body{padding-left:10px}
+  /* Contatore risultati: sulla stessa riga del sort (inline via flex sul parent) */
+  .results-bar{display:inline-flex;align-items:center;margin:0}
+  .results-count{
+    font-family:var(--font-sans);font-size:9px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);
+  }
+  .main-content{padding:4px 0 80px}
+
   .mobile-list-view #wine-list{animation:listEnter .25s ease forwards}
   @keyframes listEnter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+  /* Spellcheck / sottolineature browser */
+  .w-nome,.w-meta,.w-prod,.w-vitigno,.w-geo,.w-annata,.w-price,.w-calice,.sezione-titolo{
+    text-decoration:none;-webkit-text-decoration:none;
+  }
 }
 </style>
 </head>

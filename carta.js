@@ -450,7 +450,8 @@ function setViewMobile(view){
   }
   if(back) back.style.display="flex";
   document.body.classList.add("mobile-list-view");
-  // mobile-hero nascosto via CSS
+  // Aggiungi stato alla history del browser così il tasto "indietro" funziona
+  history.pushState({mobileLanding:false, view:view}, "", "");
   applyFilters(); buildSidebar();
 }
 
@@ -464,8 +465,18 @@ function backToLanding(){
   }
   if(back) back.style.display="none";
   document.body.classList.remove("mobile-list-view");
-  // mobile-hero nascosto via CSS
 }
+
+// Intercetta il tasto "indietro" del browser su mobile
+window.addEventListener("popstate", function(e){
+  // Solo su mobile (landing visibile = siamo in modalità mobile)
+  var landing=document.getElementById("mobile-landing");
+  if(!landing) return;
+  // Se siamo nella lista (landing nascosta), torna alla landing
+  if(document.body.classList.contains("mobile-list-view")){
+    backToLanding();
+  }
+});
 
 function buildSidebar(){
   var inner=document.getElementById("sidebar-inner"); if(!inner) return;

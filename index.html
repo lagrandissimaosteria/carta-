@@ -42,6 +42,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
       radial-gradient(ellipse at 80% 80%, rgba(80,120,170,.22) 0%, transparent 50%),
       linear-gradient(175deg, #304d65 0%, #1e3347 45%, #162840 100%);
     border-right:1px solid rgba(255,255,255,.06);
+    box-shadow: inset -1px 0 0 rgba(0,0,0,.18), 2px 0 12px rgba(0,0,0,.12);
     overflow:hidden;
     position:relative;
   }
@@ -323,9 +324,9 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   display:flex;flex-direction:column;align-items:flex-end;gap:2px;
 }
 .w-price{
-  font-family:var(--font-sans);font-size:13px;font-weight:400;
+  font-family:var(--font-sans);font-size:16px;font-weight:500;
   font-variant-numeric:tabular-nums;color:var(--ink);
-  letter-spacing:.01em;white-space:nowrap;
+  letter-spacing:-.01em;white-space:nowrap;
 }
 .w-calice{
   font-family:var(--font-sans);font-size:10px;
@@ -473,12 +474,13 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .filter-fab .fab-icon{font-size:13px;line-height:1;opacity:.8}
 .fab-badge{
   display:none;
-  background:var(--bg);color:var(--ink);
+  background:#fff;color:var(--ink);
   border-radius:10px;
-  font-family:var(--font-sans);font-size:9px;font-weight:600;
-  padding:1px 6px;
+  font-family:var(--font-sans);font-size:10px;font-weight:700;
+  padding:2px 7px;
   font-variant-numeric:tabular-nums;
   line-height:1.4;
+  box-shadow:0 1px 4px rgba(0,0,0,.15);
 }
 .fab-badge.show{display:inline}
 
@@ -577,13 +579,25 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   <div class="mobile-landing-sub">Carta dei Vini</div>
   <div class="mobile-nav-btns">
     <button class="mobile-nav-btn" onclick="setViewMobile('calice')">
-      <span>Al calice</span><span class="btn-arrow">→</span>
+      <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+        <span>Al calice</span>
+        <span style="font-size:9px;opacity:.45;letter-spacing:.06em;text-transform:none;font-weight:300">Vini disponibili a bicchiere</span>
+      </span>
+      <span class="btn-arrow">→</span>
     </button>
     <button class="mobile-nav-btn" onclick="setViewMobile('mescita')">
-      <span>Carta Breve</span><span class="btn-arrow">→</span>
+      <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+        <span>Carta Breve</span>
+        <span style="font-size:9px;opacity:.45;letter-spacing:.06em;text-transform:none;font-weight:300">Per bere bene senza pensarci troppo</span>
+      </span>
+      <span class="btn-arrow">→</span>
     </button>
     <button class="mobile-nav-btn" onclick="setViewMobile('cantina')">
-      <span>Cantina completa</span><span class="btn-arrow">→</span>
+      <span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+        <span>Cantina completa</span>
+        <span style="font-size:9px;opacity:.45;letter-spacing:.06em;text-transform:none;font-weight:300">Tutta la nostra selezione, per chi vuole scegliere con calma</span>
+      </span>
+      <span class="btn-arrow">→</span>
     </button>
   </div>
 </div>

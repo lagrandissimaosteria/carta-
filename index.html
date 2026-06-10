@@ -87,8 +87,8 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     display:flex;flex-direction:column;gap:8px;
   }
   .btn-view{
-    display:flex;align-items:center;justify-content:center;gap:0;
-    width:100%;padding:11px 20px;
+    display:flex;align-items:flex-start;justify-content:space-between;gap:0;
+    width:100%;padding:13px 20px;
     border:1px solid rgba(255,255,255,.1);
     border-radius:0;
     background:transparent;
@@ -97,9 +97,21 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     letter-spacing:.14em;text-transform:uppercase;
     transition:background .18s,color .18s,border-color .18s;
     position:relative;overflow:hidden;
+    text-align:left;
+    flex-direction:column;gap:3px;
   }
   .btn-view::before{display:none}
   .btn-view .btn-icon{display:none}
+  .btn-view-sub{
+    font-size:8px;letter-spacing:.04em;text-transform:none;
+    font-weight:300;opacity:0;
+    transition:opacity .18s;
+    line-height:1.4;
+    color:rgba(255,255,255,.35);
+    display:block;
+  }
+  .btn-view:hover .btn-view-sub,
+  .btn-view.active .btn-view-sub{opacity:1}
   .btn-view:hover{
     background:rgba(255,255,255,.07);
     color:rgba(255,255,255,.75);
@@ -345,7 +357,11 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   /* classi legacy — tenute per sicurezza ma non usate dal nuovo markup */
 }
 .main-content{padding:20px 20px 40px}
-.vuoto{padding:40px 20px;text-align:center;color:var(--grey);font-size:14px;line-height:1.8}
+/* Nessuna sottolineatura su testi vino (il browser spellcheck non tocca elementi non-editable, ma preveniamo override) */
+.w-nome,.w-meta,.w-prod,.w-vitigno,.w-geo,.w-annata,.w-price,.w-calice,.sezione-titolo{
+  text-decoration:none;
+  -webkit-text-decoration:none;
+}
 /* accent color ora via --accent CSS custom property (inline su ogni .vino) */
 /* classi slug rimosse — gestite da w-accent-bar */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:200;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
@@ -493,7 +509,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   #mobile-hero{display:none!important}
   .mobile-landing{
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    min-height:100vh;padding:40px 24px 60px;
+    min-height:100vh;padding:0 32px 0;
     background:linear-gradient(175deg,#304d65 0%,#1e3347 60%,#162840 100%);
     position:fixed;inset:0;z-index:50;
     transition:opacity .22s ease,transform .22s ease;
@@ -501,34 +517,37 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   }
   .mobile-landing.hidden{display:none!important}
   .mobile-landing.is-leaving{opacity:0;transform:translateY(-8px);pointer-events:none}
-  .mobile-landing-doodle{width:56px;mix-blend-mode:screen;opacity:.85;margin-bottom:12px}
-  .mobile-landing-logo{max-width:220px;width:80%;mix-blend-mode:screen;opacity:.95;margin-bottom:6px}
+  .mobile-landing-doodle{width:72px;mix-blend-mode:screen;opacity:.85;margin-bottom:14px}
+  .mobile-landing-logo{max-width:280px;width:88%;mix-blend-mode:screen;opacity:.95;margin-bottom:8px}
   .mobile-landing-sub{
-    font-family:var(--font-sans);font-size:8px;letter-spacing:.4em;
-    text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:44px;font-weight:400;
+    font-family:var(--font-sans);font-size:9px;letter-spacing:.4em;
+    text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:52px;font-weight:400;
   }
-  .mobile-nav-btns{display:flex;flex-direction:column;gap:0;width:100%;max-width:280px}
+  .mobile-nav-btns{display:flex;flex-direction:column;gap:0;width:100%;max-width:340px}
   .mobile-nav-btn{
     display:flex;align-items:center;justify-content:space-between;
-    width:100%;padding:15px 0;
+    width:100%;padding:20px 0;
     border:none;border-bottom:1px solid rgba(255,255,255,.1);
     background:transparent;
     color:rgba(255,255,255,.65);
-    font-family:var(--font-sans);font-size:10px;font-weight:400;
+    font-family:var(--font-sans);font-size:11px;font-weight:400;
     letter-spacing:.12em;text-transform:uppercase;
     transition:color .18s;cursor:pointer;
   }
   .mobile-nav-btn:first-child{border-top:1px solid rgba(255,255,255,.1)}
   .mobile-nav-btn:hover,.mobile-nav-btn:active{color:rgba(255,255,255,.95)}
-  .mobile-nav-btn .btn-arrow{font-size:14px;opacity:.35;transition:opacity .18s,transform .18s}
+  .mobile-nav-btn .btn-arrow{font-size:16px;opacity:.35;transition:opacity .18s,transform .18s;flex-shrink:0}
   .mobile-nav-btn:hover .btn-arrow{opacity:.8;transform:translateX(3px)}
+  /* FAB nascosto sulla landing, visibile solo in list view */
+  .filter-fab{display:none!important}
+  body.mobile-list-view .filter-fab{display:flex!important}
   .btn-back-mobile{
     display:flex!important;align-items:center;gap:8px;
     position:fixed;top:0;left:0;right:0;z-index:49;
     background:var(--hero2);color:rgba(255,255,255,.85);
     border-bottom:none;
-    padding:13px 18px;
-    font-family:var(--font-sans);font-size:9px;font-weight:400;
+    padding:14px 18px;
+    font-family:var(--font-sans);font-size:10px;font-weight:400;
     letter-spacing:.12em;text-transform:uppercase;
     border:none;cursor:pointer;
   }
@@ -558,11 +577,26 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   .modal-nome{font-size:18px}
   .modal-body{padding:14px 16px}
   .modal-prezzo{padding:10px 16px}
+  /* Search bar mobile: ben visibile, non trasparente */
   .search-bar-wrap{
-    padding:10px 12px 4px;
+    padding:12px 14px 8px;
     max-height:none!important;opacity:1!important;overflow:visible!important;
+    background:var(--bg);
+    border-bottom:1px solid var(--line);
   }
-  .search-bar-wrap .search-input{border-radius:0;border:none;border-bottom:1px solid var(--line);box-shadow:none;background:transparent;padding-left:0}
+  .search-bar-wrap .search-input{
+    border-radius:6px;
+    border:1.5px solid var(--line-s);
+    box-shadow:0 1px 4px rgba(0,0,0,.06);
+    background:#fff;
+    padding:11px 40px 11px 36px;
+    font-size:15px;
+  }
+  .search-bar-inner::before{
+    content:"🔍";
+    position:absolute;left:11px;top:50%;transform:translateY(-50%);
+    font-size:14px;pointer-events:none;opacity:.45;
+  }
   .sezione-titolo{padding-left:12px}
   .w-body{padding-left:10px}
   .mobile-list-view #wine-list{animation:listEnter .25s ease forwards}
@@ -619,12 +653,15 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   <div class="nav-views">
     <button class="btn-view active" data-view="calice" onclick="setView('calice')">
       Al Calice
+      <span class="btn-view-sub">Vini disponibili a bicchiere</span>
     </button>
     <button class="btn-view" data-view="mescita" onclick="setView('mescita')">
       Carta Breve
+      <span class="btn-view-sub">Per bere bene senza pensarci troppo</span>
     </button>
     <button class="btn-view" data-view="cantina" onclick="setView('cantina')">
       Cantina
+      <span class="btn-view-sub">Tutta la nostra selezione, per chi vuole scegliere con calma</span>
     </button>
   </div>
 
@@ -652,7 +689,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
       <!-- Search bar: visibile solo cantina -->
       <div class="search-bar-wrap" id="search-bar-wrap">
         <div class="search-bar-inner">
-          <input class="search-input" id="search-input" type="text"
+          <input class="search-input" id="search-input" type="text" spellcheck="false"
             placeholder="Cerca vino, produttore, vitigno…" oninput="onSearch(this)">
           <button class="search-clear" id="search-clear" onclick="clearSearch()">×</button>
         </div>
@@ -661,7 +698,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
       <div class="sort-bar" id="sort-bar-wrap"></div>
       <div class="main-content">
         <div class="results-bar"><span class="results-count" id="results-count">—</span></div>
-        <div id="wine-list"><div class="vuoto">Caricamento in corso…</div></div>
+        <div id="wine-list" spellcheck="false"><div class="vuoto">Caricamento in corso…</div></div>
       </div>
     </div>
   </div>

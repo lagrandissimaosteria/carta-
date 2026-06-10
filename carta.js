@@ -107,15 +107,32 @@ function _pgEsc(s){ return String(s).replace(/'/g,"''"); }
 
 async function _fetchWinesRaw(){
   if(!_useRestFallback && _sb){
-    var r=await _sb.from("cm_wines").select("data").eq("user_id",DB_USER).maybeSingle();
+    var r=await _sb.from("cm_wines").select("data").eq("user_id",DB_USER);
     if(r.error) throw r.error;
-    return (r.data&&r.data.data)?r.data.data:[];
+    if(!r.data||!r.data.length) return [];
+    if(r.data.length===1) return r.data[0].data||[];
+    // Più righe (struttura legacy): merge identico a manager.js
+    return r.data.flatMap(function(row){
+      var d=row.data;
+      if(Array.isArray(d)) return d;
+      if(d&&typeof d==="object") return [d];
+      return [];
+    });
   } else {
-    var url=SB_URL+"/rest/v1/cm_wines?select=data&user_id=eq."+encodeURIComponent(_pgEsc(DB_USER))+"&limit=1";
+    // REST path: rimuove limit=1 per recuperare eventuali righe multiple
+    var url=SB_URL+"/rest/v1/cm_wines?select=data&user_id=eq."+encodeURIComponent(_pgEsc(DB_USER));
     var resp=await fetch(url,{headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Accept":"application/json"}});
     if(!resp.ok){ var errText=await resp.text(); throw new Error("HTTP "+resp.status+": "+errText); }
     var rows=await resp.json();
-    return (rows&&rows.length&&rows[0].data)?rows[0].data:[];
+    if(!rows||!rows.length) return [];
+    if(rows.length===1) return rows[0].data||[];
+    // Più righe: merge
+    return rows.flatMap(function(row){
+      var d=row.data;
+      if(Array.isArray(d)) return d;
+      if(d&&typeof d==="object") return [d];
+      return [];
+    });
   }
 }
 
@@ -136,6 +153,28 @@ function getCategoryByTipologia(t){
   return "Altro";
 }
 function _fmtP(v){ var s=parseFloat(v).toFixed(2); return s.replace(/\.00$/,"").replace(/(\.\d)0$/,"$1"); }
+function _capVitigni(s){
+  if(!s) return s;
+  var lower=["di","del","della","dei","degli","de","d","e","in","da"];
+  return s.split(",").map(function(seg){
+    var t=seg.trim();
+    if(!t) return t;
+    return t.toLowerCase().split(/\s+/).map(function(word,i){
+      if(!word) return word;
+      // Gestisce apostrofo: "d'avola" → "d'Avola"
+      var apos=word.indexOf("'");
+      if(apos>0){
+        var pre=word.slice(0,apos+1);
+        var post=word.slice(apos+1);
+        return pre+(post?post.charAt(0).toUpperCase()+post.slice(1):"");
+      }
+      if(i===0||lower.indexOf(word)<0){
+        return word.charAt(0).toUpperCase()+word.slice(1);
+      }
+      return word;
+    }).join(" ");
+  }).join(", ");
+}
 
 async function loadWines(){
   var wines=await _fetchWinesRaw();
@@ -158,7 +197,7 @@ async function loadWines(){
       b:pCalice>0?"€ "+_fmtP(pCalice):"",
       prezzo_carta:pNum,
       prezzo_calice:pCalice,
-      vitigno:w.vitigni||w.vitigno||"",
+      vitigno:_capVitigni(w.vitigni||w.vitigno||""),
       regione:w.regione||"", zona:w.zona||"",
       nazione:_paese, paese:_paese,
       tipologia:cat,
@@ -272,6 +311,15 @@ function applyFilters(){
     else if(sortVal==="za") wines.sort(function(a,b){return(b.n||"").localeCompare(a.n||"","it");});
     else if(sortVal==="asc") wines.sort(function(a,b){return a._p-b._p;});
     else if(sortVal==="desc") wines.sort(function(a,b){return b._p-a._p;});
+    else if(currentView==='mescita'||currentView==='cantina'){
+      wines.sort(function(a,b){
+        var pa=(a.paese||a.nazione||"").localeCompare(b.paese||b.nazione||"","it");
+        if(pa!==0) return pa;
+        var ra=(a.regione||a.zona||"").localeCompare(b.regione||b.zona||"","it");
+        if(ra!==0) return ra;
+        return (a.zona||"").localeCompare(b.zona||"","it");
+      });
+    }
     if(!wines.length) return;
     total+=wines.length;
 
@@ -336,11 +384,13 @@ function _buildCaliceRow(w,cat){
   var annata=w.annata?"<span class='w-annata'>"+esc(w.annata)+"</span>":"";
   var meta=[];
   if(w.produttore) meta.push("<span class='w-prod'>"+esc(w.produttore)+"</span>");
+  if(w.vitigno)    meta.push("<span class='w-vitigno'>"+esc(w.vitigno)+"</span>");
   meta.push("<span class='w-tipo-label' style='color:"+accentColor+"'>"+esc(catLabel)+"</span>");
   var metaHtml="<div class='w-meta'>"+meta.join("<span class='w-sep'>\u00b7</span>")+"</div>";
   var geo=[];
   if(w.zona)                        geo.push(esc(w.zona));
   if(w.regione&&w.regione!==w.zona) geo.push(esc(w.regione));
+  if(w.nazione)                     geo.push(esc(w.nazione));
   var geoHtml=geo.length?"<div class='w-geo'>"+geo.join("<span class='w-sep'>\u00b7</span>")+"</div>":"";
   return "<div class='vino vino-"+slug+" vino-calice' data-id='"+w.id+"' style='--accent:"+accentColor+"'>"
     +"<div class='w-accent-bar'></div>"
@@ -522,7 +572,7 @@ function _getUniqueVals(field){
         else { if((w[f]||"").toLowerCase()!==fState[f].toLowerCase()) return; }
       }
       if(!w[field]) return;
-      if(field==="vitigno"){ w[field].split(",").forEach(function(v){ var t=v.trim(); if(t) set.add(t); }); }
+      if(field==="vitigno"){ w[field].split(",").forEach(function(v){ var t=_capVitigni(v.trim()); if(t) set.add(t); }); }
       else { set.add(w[field]); }
     });
   });

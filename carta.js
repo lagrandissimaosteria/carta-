@@ -99,6 +99,16 @@ var _overlayCount=0;
 function _lockScroll(){ _overlayCount++; document.body.style.overflow="hidden"; }
 function _unlockScroll(){ _overlayCount=Math.max(0,_overlayCount-1); if(_overlayCount===0) document.body.style.overflow=""; }
 function esc(s){ var d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
+function _fresco(w){ return w&&w.inFresco?"<span class='w-fresco' title='Servito in fresco' aria-label='in fresco'>\u2744\uFE0E</span>":""; }
+function _ensureFrescoCSS(){
+  if(document.getElementById("fresco-css")) return;
+  var st=document.createElement("style"); st.id="fresco-css";
+  st.textContent=".w-fresco{display:inline-block;margin-left:6px;color:#8fd4ff;font-size:.7em;line-height:1;vertical-align:middle;text-shadow:0 0 5px rgba(143,212,255,.6);animation:frescoPulse 2.6s ease-in-out infinite}"
+    +"@keyframes frescoPulse{0%,100%{opacity:.82;text-shadow:0 0 4px rgba(143,212,255,.4)}50%{opacity:1;text-shadow:0 0 9px rgba(143,212,255,.85)}}"
+    +"@media(max-width:640px){.w-fresco{font-size:.82em;margin-left:5px}}"
+    +"@media(prefers-reduced-motion:reduce){.w-fresco{animation:none}}";
+  document.head.appendChild(st);
+}
 function _setStatus(state){
   var dot=document.getElementById("sb-dot"),lbl=document.getElementById("sb-lbl"); if(!dot)return;
   dot.className=state; lbl.textContent={ok:"Live",sync:"Sync...",err:"Offline",off:"Offline"}[state]||"DB";
@@ -193,6 +203,7 @@ async function loadWines(){
     var _paese=inferPaese(w.nazione,w.regione,w.zona);
     d[cat].push({
       id:w.id, n:nome, produttore:prod, annata:w.annata||"",
+      inFresco:!!w.inFresco,
       p:pNum>0?"€ "+_fmtP(pNum):"",
       b:pCalice>0?"€ "+_fmtP(pCalice):"",
       prezzo_carta:pNum,
@@ -299,7 +310,7 @@ function _matchesFilters(w){
   return true;
 }
 
-function applyFilters(){
+function applyFilters(){ _ensureFrescoCSS();
   var sortSel=document.getElementById("sort-sel");
   var sortVal=sortSel?sortSel.value:"default";
   var html=""; var total=0;
@@ -368,7 +379,7 @@ function _buildWineRow(w,cat){
     +"<div class='w-accent-bar'></div>"
     +"<div class='w-body'>"
     +  "<div class='w-sx'>"
-    +    "<div class='w-nome'>"+esc(w.n)+annata+formato+"</div>"
+    +    "<div class='w-nome'>"+esc(w.n)+_fresco(w)+annata+formato+"</div>"
     +    metaHtml+geoHtml
     +  "</div>"
     +  "<div class='w-dx'>"+priceHtml+"</div>"
@@ -396,7 +407,7 @@ function _buildCaliceRow(w,cat){
     +"<div class='w-accent-bar'></div>"
     +"<div class='w-body'>"
     +  "<div class='w-sx'>"
-    +    "<div class='w-nome'>"+esc(w.n)+annata+"</div>"
+    +    "<div class='w-nome'>"+esc(w.n)+_fresco(w)+annata+"</div>"
     +    metaHtml+geoHtml
     +  "</div>"
     +  "<div class='w-dx'><span class='w-price'>"+esc(w.b)+"</span></div>"

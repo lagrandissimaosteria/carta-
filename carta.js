@@ -104,16 +104,18 @@ function _fresco(w){ return w&&w.inFresco?"<span class='w-fresco' title='Servito
 function _ensureFrescoCSS(){
   if(document.getElementById("fresco-css")) return;
   var st=document.createElement("style"); st.id="fresco-css";
-  st.textContent=".w-fresco{display:inline-block;margin-left:7px;font-size:1.05em;line-height:1;vertical-align:middle;color:#0f9fe0;text-shadow:0 0 3px rgba(130,222,255,.95),0 0 7px rgba(40,170,235,.7),0 0 14px rgba(40,170,235,.4),0 0 22px rgba(40,170,235,.2);animation:frescoNeon 2.4s ease-in-out infinite}"
+  st.textContent=".w-fresco{display:inline-block;margin-left:7px;font-size:1.35em;line-height:1;vertical-align:middle;color:#0f9fe0;text-shadow:0 0 3px rgba(130,222,255,.95),0 0 7px rgba(40,170,235,.7),0 0 14px rgba(40,170,235,.4),0 0 22px rgba(40,170,235,.2);animation:frescoNeon 2.4s ease-in-out infinite}"
     +"@keyframes frescoNeon{0%,100%{opacity:.92;transform:scale(1);text-shadow:0 0 3px rgba(130,222,255,.8),0 0 6px rgba(40,170,235,.5),0 0 11px rgba(40,170,235,.28)}50%{opacity:1;transform:scale(1.14);text-shadow:0 0 3px rgba(170,235,255,1),0 0 8px rgba(40,170,235,.85),0 0 16px rgba(40,170,235,.55),0 0 26px rgba(40,170,235,.3)}}"
-    +"@media(max-width:640px){.w-fresco{font-size:1.15em;margin-left:6px}}"
+    +"@media(max-width:640px){.w-fresco{font-size:1.55em;margin-left:6px}}"
     +"@media(prefers-reduced-motion:reduce){.w-fresco{animation:none;opacity:1;transform:none;text-shadow:0 0 3px rgba(130,222,255,.9),0 0 8px rgba(40,170,235,.6),0 0 15px rgba(40,170,235,.35)}}"
     +".fresco-legenda{font-family:inherit;font-size:11px;letter-spacing:.05em;color:#8C7E72;text-align:center;padding:26px 12px 10px;border-top:1px solid rgba(26,22,18,.07);margin-top:14px}"
     +".fresco-legenda .w-fresco{font-size:1em;margin:0 6px 0 0}"
     +".fresco-toggle{margin-left:12px;padding:5px 13px;border:1px solid rgba(15,159,224,.45);border-radius:999px;background:transparent;color:#0f9fe0;font-family:inherit;font-size:12px;letter-spacing:.04em;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,border-color .15s;line-height:1.4}"
     +".fresco-toggle:hover{background:rgba(15,159,224,.08)}"
     +".fresco-toggle.active{background:#0f9fe0;border-color:#0f9fe0;color:#fff;box-shadow:0 0 8px rgba(40,170,235,.45)}"
-    +"@media(max-width:640px){.fresco-toggle{margin-left:8px;padding:5px 11px;font-size:11px}}";
+    +"@media(max-width:640px){.fresco-toggle{margin-left:8px;padding:5px 11px;font-size:11px}}"
+    +".drawer-fresco{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;box-sizing:border-box;margin:2px 0 16px;padding:12px;font-size:13px;letter-spacing:.05em}"
+    +".drawer-fresco .df-ice{font-size:1.25em;line-height:1}";
   document.head.appendChild(st);
 }
 function _setStatus(state){
@@ -745,6 +747,17 @@ function _refreshDrawer(){
   if(!body||!src) return;
   body.innerHTML=src.innerHTML;
   body.querySelectorAll("[id]").forEach(function(el){ el.removeAttribute("id"); });
+  // Toggle "In fresco" in cima al drawer (i filtri su mobile stanno qui, non nella sort-bar)
+  if(fFresco || _hasFresco()){
+    _ensureFrescoCSS();
+    var ft=document.createElement("button");
+    ft.type="button";
+    ft.className="fresco-toggle drawer-fresco"+(fFresco?" active":"");
+    ft.setAttribute("aria-pressed", fFresco?"true":"false");
+    ft.innerHTML="<span class=\"df-ice\">\u2744\uFE0E</span> Solo vini in fresco";
+    ft.addEventListener("click",function(){ toggleFresco(); closeDrawer(); });
+    body.insertBefore(ft, body.firstChild);
+  }
   var ranges=body.querySelectorAll("input[type=range]");
   if(ranges[0]) ranges[0].classList.add("drawer-range-min");
   if(ranges[1]) ranges[1].classList.add("drawer-range-max");

@@ -100,7 +100,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     text-align:left;
   }
   .btn-view::before{display:none}
-  .btn-view .btn-icon{display:none}
   .btn-view-sub{
     font-size:8px;letter-spacing:.03em;text-transform:none;font-weight:300;
     opacity:0;transition:opacity .18s;color:rgba(255,255,255,.35);display:block;
@@ -175,7 +174,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   .mobile-landing{display:none!important}
   .btn-back-mobile{display:none!important}
   .filter-fab{display:none!important}
-  body>.hero,body>.search-wrap{display:none}
+  body>.hero{display:none}
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -335,12 +334,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 /* Vista calice: barra più discreta */
 .vino-calice .w-accent-bar{opacity:.3}
 
-/* Retro-compat: slug-based border-left via accent bar (ora via --accent CSS var) */
-.vino-sx,.vino-dx,.vino-nome,.vino-prod,.vino-vitigno,
-.vino-geo,.vino-prezzo,.vino-bicchiere,.vino-annata,
-.vino-formato-badge,.vino-regione,.vino-paese-tag,.vino-geo-sep{
-  /* classi legacy — tenute per sicurezza ma non usate dal nuovo markup */
-}
 .main-content{padding:20px 20px 40px}
 .vuoto{padding:40px 20px;text-align:center;color:var(--grey);font-size:14px;line-height:1.8}
 /* accent color ora via --accent CSS custom property (inline su ogni .vino) */

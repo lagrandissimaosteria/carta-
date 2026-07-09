@@ -30,6 +30,7 @@ var currentView = 'calice'; // 'calice' | 'mescita' | 'cantina'
 var db={}, catConfig=[], fCat="tutti", fSearch="";
 var pMin=0, pMax=500, pMaxG=500;
 var fState={paese:"",regione:"",produttore:"",vitigno:"",annata:""};
+var fFresco=false;
 var _idxById=new Map();
 var _sb=null;
 
@@ -103,10 +104,16 @@ function _fresco(w){ return w&&w.inFresco?"<span class='w-fresco' title='Servito
 function _ensureFrescoCSS(){
   if(document.getElementById("fresco-css")) return;
   var st=document.createElement("style"); st.id="fresco-css";
-  st.textContent=".w-fresco{display:inline-block;margin-left:6px;color:#8fd4ff;font-size:.7em;line-height:1;vertical-align:middle;text-shadow:0 0 5px rgba(143,212,255,.6);animation:frescoPulse 2.6s ease-in-out infinite}"
-    +"@keyframes frescoPulse{0%,100%{opacity:.82;text-shadow:0 0 4px rgba(143,212,255,.4)}50%{opacity:1;text-shadow:0 0 9px rgba(143,212,255,.85)}}"
-    +"@media(max-width:640px){.w-fresco{font-size:.82em;margin-left:5px}}"
-    +"@media(prefers-reduced-motion:reduce){.w-fresco{animation:none}}";
+  st.textContent=".w-fresco{display:inline-block;margin-left:7px;font-size:1.05em;line-height:1;vertical-align:middle;color:#0f9fe0;text-shadow:0 0 3px rgba(130,222,255,.95),0 0 7px rgba(40,170,235,.7),0 0 14px rgba(40,170,235,.4),0 0 22px rgba(40,170,235,.2);animation:frescoNeon 2.4s ease-in-out infinite}"
+    +"@keyframes frescoNeon{0%,100%{opacity:.92;transform:scale(1);text-shadow:0 0 3px rgba(130,222,255,.8),0 0 6px rgba(40,170,235,.5),0 0 11px rgba(40,170,235,.28)}50%{opacity:1;transform:scale(1.14);text-shadow:0 0 3px rgba(170,235,255,1),0 0 8px rgba(40,170,235,.85),0 0 16px rgba(40,170,235,.55),0 0 26px rgba(40,170,235,.3)}}"
+    +"@media(max-width:640px){.w-fresco{font-size:1.15em;margin-left:6px}}"
+    +"@media(prefers-reduced-motion:reduce){.w-fresco{animation:none;opacity:1;transform:none;text-shadow:0 0 3px rgba(130,222,255,.9),0 0 8px rgba(40,170,235,.6),0 0 15px rgba(40,170,235,.35)}}"
+    +".fresco-legenda{font-family:inherit;font-size:11px;letter-spacing:.05em;color:#8C7E72;text-align:center;padding:26px 12px 10px;border-top:1px solid rgba(26,22,18,.07);margin-top:14px}"
+    +".fresco-legenda .w-fresco{font-size:1em;margin:0 6px 0 0}"
+    +".fresco-toggle{margin-left:12px;padding:5px 13px;border:1px solid rgba(15,159,224,.45);border-radius:999px;background:transparent;color:#0f9fe0;font-family:inherit;font-size:12px;letter-spacing:.04em;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,border-color .15s;line-height:1.4}"
+    +".fresco-toggle:hover{background:rgba(15,159,224,.08)}"
+    +".fresco-toggle.active{background:#0f9fe0;border-color:#0f9fe0;color:#fff;box-shadow:0 0 8px rgba(40,170,235,.45)}"
+    +"@media(max-width:640px){.fresco-toggle{margin-left:8px;padding:5px 11px;font-size:11px}}";
   document.head.appendChild(st);
 }
 function _setStatus(state){
@@ -193,7 +200,7 @@ async function loadWines(){
   wines.forEach(function(w){
     var rawTipo=w.tipologia||"Altro";
     var fmt=parseFloat(w.formato)||0.75;
-    var cat=fmt>0.75?"Magnum":getCategoryByTipologia(rawTipo);
+    var cat=fmt>=1.5?"Magnum":getCategoryByTipologia(rawTipo);
     if(!d[cat]) d[cat]=[];
     var nome=w.nome||w.nomeVino||w.n||"";
     var prod=w.produttore||"";
@@ -212,7 +219,7 @@ async function loadWines(){
       regione:w.regione||"", zona:w.zona||"",
       nazione:_paese, paese:_paese,
       tipologia:cat,
-      formato:fmt>0.75?fmt:null,
+      formato:fmt!==0.75?fmt:null,
       qty:w.giacenza||0,
       note:w.noteVeloce||w.note||"",
       _p:pNum
@@ -294,11 +301,52 @@ function _getViewFilteredWines(cat){
   return wines; // 'cantina': tutti
 }
 
+// ── FUZZY SEARCH CONDIVISO (identico a manager.js, senza SKU lato pubblico) ──
+function _normDup(s){
+  return String(s||"").toLowerCase().trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[-_''.]/g," ")
+    .replace(/\b(le|la|il|lo|i|gli|di|del|della|dei|degli|delle|de|du|von|van|the|domaine|chateau|clos|mas|finca)\b/g,"")
+    .replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+}
+function _trigramSim(a,b){
+  if(!a&&!b) return 1; if(!a||!b) return 0;
+  function tg(s){ var p="  "+s+"  ",set=new Set(); for(var i=0;i<p.length-2;i++) set.add(p.slice(i,i+3)); return set; }
+  var ta=tg(a),tb=tg(b),inter=0;
+  ta.forEach(function(t){ if(tb.has(t)) inter++; });
+  return (2*inter)/(ta.size+tb.size);
+}
+function _lev(a,b){
+  if(a===b) return 0; var m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  var prev=new Array(n+1),cur=new Array(n+1),i,j;
+  for(j=0;j<=n;j++) prev[j]=j;
+  for(i=1;i<=m;i++){ cur[0]=i;
+    for(j=1;j<=n;j++){ var cost=a[i-1]===b[j-1]?0:1; cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+cost); }
+    var t=prev; prev=cur; cur=t;
+  }
+  return prev[n];
+}
+function _fuzzyMatch(q,haystack){
+  q=_normDup(q); if(!q) return true;
+  var hayNorm=_normDup(haystack);
+  if(hayNorm.indexOf(q)>=0) return true;
+  var qt=q.split(" ").filter(Boolean), ht=hayNorm.split(" ").filter(Boolean);
+  if(!ht.length) return false;
+  return qt.every(function(tok){
+    if(tok.length<=2) return ht.some(function(x){ return x.indexOf(tok)>=0; });
+    return ht.some(function(x){
+      if(x.indexOf(tok)>=0) return true;
+      if(_trigramSim(tok,x)>=0.82) return true;
+      return _lev(tok,x) <= (tok.length<=6?1:2);
+    });
+  });
+}
+
 function _matchesFilters(w){
+  if(fFresco&&!w.inFresco) return false;
   if(fSearch){
-    var q=fSearch.toLowerCase();
-    var hay=(w.n||"")+(w.produttore||"")+(w.vitigno||"")+(w.zona||"")+(w.regione||"")+(w.paese||"")+(w.nazione||"")+(w.annata||"");
-    if(hay.toLowerCase().indexOf(q)<0) return false;
+    var hay=[w.n,w.produttore,w.vitigno,w.zona,w.regione,w.paese,w.nazione,w.annata].filter(Boolean).join(" ");
+    if(!_fuzzyMatch(fSearch,hay)) return false;
   }
   if(fState.paese&&(w.paese||"").toLowerCase()!==fState.paese.toLowerCase()) return false;
   if(fState.regione&&(w.regione||"").toLowerCase()!==fState.regione.toLowerCase()) return false;
@@ -353,7 +401,10 @@ function applyFilters(){ _ensureFrescoCSS();
   var viewLabel=currentView==='calice'?"al calice":currentView==='mescita'?"carta breve":"in cantina";
   if(rc) rc.textContent=total+" etichett"+(total===1?"a":"e")+" "+viewLabel;
   var wl=document.getElementById("wine-list");
-  if(wl) wl.innerHTML=html||"<div class=\"vuoto\">Nessun vino trovato.</div>";
+  var _legenda = html.indexOf("w-fresco")>=0
+    ? "<div class=\"fresco-legenda\"><span class=\"w-fresco\">\u2744\uFE0E</span>servito in fresco</div>"
+    : "";
+  if(wl) wl.innerHTML=html?(html+_legenda):"<div class=\"vuoto\">Nessun vino trovato.</div>";
   _syncFabBadge();
 }
 
@@ -440,6 +491,7 @@ function _syncViewUI(view){
     document.querySelectorAll("#range-max").forEach(function(el){el.value=pMaxG;});
     _updateRangeFill();
   }
+  buildSortBar();
 }
 
 // ── CAMBIO VISTA (desktop) ────────────────────────────────────────────────────
@@ -569,13 +621,22 @@ function buildSidebar(){
 }
 function _toggleAcc(headEl){ var wrap=headEl.parentElement; if(wrap) wrap.classList.toggle("open"); }
 
+function _hasFresco(){
+  return catConfig.some(function(c){ return _getViewFilteredWines(c.nome).some(function(w){ return w.inFresco; }); });
+}
+function toggleFresco(){ fFresco=!fFresco; applyFilters(); buildSortBar(); buildSidebar(); }
 function buildSortBar(){
   var wrap=document.getElementById("sort-bar-wrap"); if(!wrap) return;
+  _ensureFrescoCSS();
   var cur=(document.getElementById("sort-sel")||{}).value||"default";
   var opts=[["default","Default"],["az","A → Z"],["za","Z → A"],["asc","Prezzo ↑"],["desc","Prezzo ↓"]];
   var html="<span class=\"sort-label\">Ordina</span><select class=\"sort-select\" id=\"sort-sel\" onchange=\"applyFilters()\">";
   opts.forEach(function(o){ html+="<option value=\""+o[0]+"\""+(cur===o[0]?" selected":"")+">"+o[1]+"</option>"; });
-  wrap.innerHTML=html+"</select>";
+  html+="</select>";
+  if(fFresco||_hasFresco()){
+    html+="<button type=\"button\" class=\"fresco-toggle"+(fFresco?" active":"")+"\" onclick=\"toggleFresco()\" aria-pressed=\""+(fFresco?"true":"false")+"\">\u2744\uFE0E In fresco</button>";
+  }
+  wrap.innerHTML=html;
 }
 
 function countAll(){ return catConfig.reduce(function(s,c){return s+(db[c.nome]||[]).length;},0); }
@@ -611,7 +672,7 @@ var _searchDebounce=null;
 function onSearch(inp){ fSearch=inp.value; var cl=document.getElementById("search-clear"); if(cl) cl.classList.toggle("show",!!fSearch); clearTimeout(_searchDebounce); _searchDebounce=setTimeout(applyFilters,150); }
 function clearSearch(){ fSearch=""; var inp=document.getElementById("search-input"); if(inp) inp.value=""; var cl=document.getElementById("search-clear"); if(cl) cl.classList.remove("show"); applyFilters(); }
 function resetAll(){
-  fCat="tutti"; fSearch=""; pMin=0; pMax=pMaxG;
+  fCat="tutti"; fSearch=""; pMin=0; pMax=pMaxG; fFresco=false;
   fState={paese:"",regione:"",produttore:"",vitigno:""};
   var inp=document.getElementById("search-input"); if(inp) inp.value="";
   var cl=document.getElementById("search-clear"); if(cl) cl.classList.remove("show");
@@ -659,7 +720,7 @@ function closeModalDirect(){ var modal=document.getElementById("modal"); if(moda
 document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeModalDirect(); });
 
 // ── DRAWER FILTRI MOBILE ──────────────────────────────────────────────────────
-function _countActiveFilters(){ var n=0; if(fCat!=="tutti")n++; if(fSearch)n++; if(pMin>0||pMax<pMaxG)n++; if(fState.paese)n++; if(fState.regione)n++; if(fState.produttore)n++; if(fState.vitigno)n++; if(fState.annata)n++; return n; }
+function _countActiveFilters(){ var n=0; if(fCat!=="tutti")n++; if(fSearch)n++; if(pMin>0||pMax<pMaxG)n++; if(fState.paese)n++; if(fState.regione)n++; if(fState.produttore)n++; if(fState.vitigno)n++; if(fState.annata)n++; if(fFresco)n++; return n; }
 function _syncFabBadge(){
   var n=_countActiveFilters();
   var b=document.getElementById("fab-badge");

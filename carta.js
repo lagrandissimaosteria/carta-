@@ -1,7 +1,24 @@
-// ─── CREDENZIALI SUPABASE ────────────────────────────────────────────────────
-const SB_URL = "https://aznqjmhzbehpmvxnxbzs.supabase.co";
-const SB_KEY = "sb_publishable_FnsZcIMLdfbaABqmwx3I2A_rXfRmHhY";
-const DB_USER = "default";
+// ─── CONFIG PER LOCALE ───────────────────────────────────────────────────────
+// Stesso pattern di manager.js: un solo carta.js condiviso, le differenze vivono
+// in window.CARTA_CONFIG dentro l'index.html di ciascun locale. I default sono
+// quelli dell'Osteria, così il deploy esistente resta valido senza modifiche.
+var _CFG=(function(){
+  var D={
+    sbUrl:      "https://aznqjmhzbehpmvxnxbzs.supabase.co",
+    sbKey:      "sb_publishable_FnsZcIMLdfbaABqmwx3I2A_rXfRmHhY",
+    dbUser:     "default",
+    mescitaMax: 45,                    // tetto € vista "Carta Breve"
+    paeseOrder: ["Italia","Francia"]   // paesi in testa, il resto alfabetico
+  };
+  var O=(typeof window!=="undefined"&&window.CARTA_CONFIG&&typeof window.CARTA_CONFIG==="object"&&!Array.isArray(window.CARTA_CONFIG))?window.CARTA_CONFIG:{};
+  var out={},k;
+  for(k in D) out[k]=D[k];
+  for(k in O) if(O[k]!==undefined&&O[k]!==null&&O[k]!=="") out[k]=O[k];
+  return out;
+})();
+const SB_URL  = _CFG.sbUrl;
+const SB_KEY  = _CFG.sbKey;
+const DB_USER = _CFG.dbUser;
 
 var _useRestFallback = SB_KEY.startsWith("sb_publishable_") || SB_KEY.startsWith("sb_");
 
@@ -188,7 +205,7 @@ function _fmtLitri(f){ return String(f).replace(".",",")+" L"; }
 
 // ── ORDINE SOMMELIER ─────────────────────────────────────────────────────────
 // Italia e Francia in testa (peso reale in carta), il resto alfabetico.
-var PAESE_ORDER=["Italia","Francia"];
+var PAESE_ORDER=Array.isArray(_CFG.paeseOrder)?_CFG.paeseOrder:["Italia","Francia"];
 function _paeseRank(p){ var i=PAESE_ORDER.indexOf(p||""); return i<0?PAESE_ORDER.length:i; }
 function _cmpTxt(a,b){
   a=String(a||"").trim(); b=String(b||"").trim();
@@ -356,7 +373,7 @@ function _buildIdxById(){
   });
 }
 
-var MESCITA_MAX_PREZZO = 45; // soglia massima bottiglia per vista mescita
+var MESCITA_MAX_PREZZO = parseFloat(_CFG.mescitaMax)||45; // soglia bottiglia vista mescita
 
 // ── MACRO-FILTRO PER VISTA ────────────────────────────────────────────────────
 function _getViewFilteredWines(cat){

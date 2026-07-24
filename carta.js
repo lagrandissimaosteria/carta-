@@ -5,11 +5,13 @@ const DB_USER = "default";
 
 var _useRestFallback = SB_KEY.startsWith("sb_publishable_") || SB_KEY.startsWith("sb_");
 
-const CAT_ORDER = ["Spumante","Bianco","Macerato","Rosato","Rosso","Naturale","Dolce","Passito","Liquoroso","Magnum","Altro"];
+const CAT_ORDER = ["Spumante","Bianco","Macerato","Rosato","Rosso","Naturale","Dolce","Passito","Liquoroso","Altro","AltriFormati"];
+// Ordine enologico interno ai "Altri Formati" (esclude la categoria contenitore).
+const CAT_ORDER_ENO = CAT_ORDER.filter(function(c){ return c!=="AltriFormati"; });
 const CAT_LABELS = {
   Rosso:"Rossi", Bianco:"Bianchi", Rosato:"Rosati", Spumante:"Bolle",
   Naturale:"Naturali", Dolce:"Dolci", Passito:"Passiti", Liquoroso:"Liquorosi",
-  Macerato:"Macerati", Magnum:"Grandi Formati", Altro:"Altro"
+  Macerato:"Macerati", Altro:"Altro", AltriFormati:"Altri Formati"
 };
 const CAT_COLORS = {
   Spumante:  "#8EA8B8",  // grigio-azzurro polvere
@@ -21,7 +23,7 @@ const CAT_COLORS = {
   Dolce:     "#8A6A8A",  // malva cenere
   Passito:   "#8A4A40",  // terracotta
   Liquoroso: "#9A6030",  // ambra scura
-  Magnum:    "#607080",  // acciaio blu
+  AltriFormati:"#607080",// acciaio blu
   Altro:     "#787068"   // grigio caldo neutro
 };
 
@@ -115,7 +117,14 @@ function _ensureFrescoCSS(){
     +".fresco-toggle.active{background:#0f9fe0;border-color:#0f9fe0;color:#fff;box-shadow:0 0 8px rgba(40,170,235,.45)}"
     +"@media(max-width:640px){.fresco-toggle{margin-left:8px;padding:5px 11px;font-size:11px}}"
     +".drawer-fresco{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;box-sizing:border-box;margin:2px 0 16px;padding:12px;font-size:13px;letter-spacing:.05em}"
-    +".drawer-fresco .df-ice{font-size:1.25em;line-height:1}";
+    +".drawer-fresco .df-ice{font-size:1.25em;line-height:1}"
+    /* ── GERARCHIA CARTA: paese / regione / cru ── */
+    +".grp-l1{font-family:var(--font-serif);font-size:15px;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--ink);padding:30px 0 9px 16px;border-bottom:1px solid var(--line-s)}"
+    +".sezione-titolo + .grp-l1{padding-top:18px}"
+    +".grp-l2{font-family:var(--font-sans);font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);padding:18px 0 7px 16px}"
+    +".grp-l3{font-family:var(--font-serif);font-style:italic;font-size:13.5px;letter-spacing:.03em;color:var(--ink-3);padding:12px 0 6px 16px}"
+    +".grp-l1 + .grp-l2{padding-top:12px}.grp-l2 + .grp-l3{padding-top:6px}"
+    +"@media(max-width:640px){.grp-l1{font-size:13px;padding:22px 0 8px 14px}.grp-l2{padding-left:14px;padding-top:14px}.grp-l3{padding-left:14px;font-size:12.5px}}";
   document.head.appendChild(st);
 }
 function _setStatus(state){
@@ -159,6 +168,54 @@ var _BOLLE=["Champagne","Champagne Rosè","Metodo Classico","Metodo Classico Ros
             "Rifermentato","Rifermentato Rosso","Rifermentato Rosato","Col Fondo",
             "Colfondo","Ancestrale","Metodo Charmat","Sidro","Sidro di Pera",
             "Petillant","Spumante","Bolle"];
+// ── FORMATI BOTTIGLIA ─────────────────────────────────────────────────────────
+// La 0,75 è la carta "normale". Tutto il resto (mezze, litro, magnum e oltre)
+// finisce in una sezione dedicata: è così che un sommelier legge la lista.
+var FMT_BUCKETS=[
+  {key:"grandi",label:"Grandi Formati", test:function(f){ return f>=1.5; }},
+  {key:"litro", label:"Litro",          test:function(f){ return f>0.75&&f<1.5; }},
+  {key:"mezze", label:"Mezze Bottiglie",test:function(f){ return f<0.75; }}
+];
+function _fmtBucket(f){
+  for(var i=0;i<FMT_BUCKETS.length;i++) if(FMT_BUCKETS[i].test(f)) return FMT_BUCKETS[i].key;
+  return "grandi";
+}
+var _FMT_NOMI={0.1875:"Piccola",0.25:"Quarto",0.375:"Mezza",0.5:"0,50 L",1:"Litro",
+  1.5:"Magnum",2:"Jéroboam",2.25:"Marie-Jeanne",3:"Doppia Magnum",4.5:"Réhoboam",
+  5:"5 L",6:"Mathusalem",9:"Salmanazar",12:"Balthazar",15:"Nabuchodonosor"};
+function _fmtNome(f){ return _FMT_NOMI[f]||(String(f).replace(".",",")+" L"); }
+function _fmtLitri(f){ return String(f).replace(".",",")+" L"; }
+
+// ── ORDINE SOMMELIER ─────────────────────────────────────────────────────────
+// Italia e Francia in testa (peso reale in carta), il resto alfabetico.
+var PAESE_ORDER=["Italia","Francia"];
+function _paeseRank(p){ var i=PAESE_ORDER.indexOf(p||""); return i<0?PAESE_ORDER.length:i; }
+function _cmpTxt(a,b){
+  a=String(a||"").trim(); b=String(b||"").trim();
+  if(!a&&!b) return 0;
+  if(!a) return 1;            // valori mancanti in coda, non in testa
+  if(!b) return -1;
+  return a.localeCompare(b,"it",{sensitivity:"base"});
+}
+// paese → regione → cru/zona → produttore → nome → annata (dalla più vecchia)
+function _cmpSommelier(a,b){
+  var d=_paeseRank(a.paese||a.nazione)-_paeseRank(b.paese||b.nazione); if(d) return d;
+  d=_cmpTxt(a.paese||a.nazione,b.paese||b.nazione); if(d) return d;
+  d=_cmpTxt(a.regione,b.regione); if(d) return d;
+  d=_cmpCru(_cru(a),_cru(b)); if(d) return d;
+  d=_cmpTxt(a.produttore,b.produttore); if(d) return d;
+  d=_cmpTxt(a.n,b.n); if(d) return d;
+  return (parseInt(a.annata,10)||0)-(parseInt(b.annata,10)||0);
+}
+function _cru(w){ return (w.zona&&w.zona!==w.regione)?w.zona:""; }
+// Il cru vuoto ordina PRIMA: i vini generici della regione stanno sotto
+// l'intestazione di regione, i cru aprono sottosezioni proprie sotto di essi.
+function _cmpCru(a,b){
+  a=String(a||"").trim(); b=String(b||"").trim();
+  if(!a&&!b) return 0; if(!a) return -1; if(!b) return 1;
+  return a.localeCompare(b,"it",{sensitivity:"base"});
+}
+
 function getCategoryByTipologia(t){
   if(_BOLLE.indexOf(t)>-1) return "Spumante";
   if(t==="Bianco"||t==="Bianchi") return "Bianco";
@@ -202,7 +259,10 @@ async function loadWines(){
   wines.forEach(function(w){
     var rawTipo=w.tipologia||"Altro";
     var fmt=parseFloat(w.formato)||0.75;
-    var cat=fmt>=1.5?"Magnum":getCategoryByTipologia(rawTipo);
+    var tipoEno=getCategoryByTipologia(rawTipo);
+    // Qualunque formato diverso dalla 0,75 esce dalla sua categoria enologica e
+    // confluisce in "Altri Formati", dove viene poi risuddiviso per bucket e tipologia.
+    var cat=fmt!==0.75?"AltriFormati":tipoEno;
     if(!d[cat]) d[cat]=[];
     var nome=w.nome||w.nomeVino||w.n||"";
     var prod=w.produttore||"";
@@ -220,7 +280,10 @@ async function loadWines(){
       vitigno:_capVitigni(w.vitigni||w.vitigno||""),
       regione:w.regione||"", zona:w.zona||"",
       nazione:_paese, paese:_paese,
-      tipologia:cat,
+      tipologia:CAT_LABELS[tipoEno]||tipoEno,
+      _tipoKey:tipoEno,
+      _fmt:fmt,
+      _fmtBucket:_fmtBucket(fmt),
       formato:fmt!==0.75?fmt:null,
       qty:w.giacenza||0,
       note:w.noteVeloce||w.note||"",
@@ -299,7 +362,12 @@ var MESCITA_MAX_PREZZO = 45; // soglia massima bottiglia per vista mescita
 function _getViewFilteredWines(cat){
   var wines=(db[cat]||[]);
   if(currentView==='calice') return wines.filter(function(w){ return w.prezzo_calice>0; });
-  if(currentView==='mescita') return wines.filter(function(w){ return w.prezzo_carta>0&&w.prezzo_carta<=MESCITA_MAX_PREZZO; });
+  if(currentView==='mescita'){
+    // Il tetto è tarato sulla bottiglia da 0,75: applicarlo ai grandi formati
+    // azzererebbe la sezione per costruzione, non per assenza di etichette.
+    if(cat==='AltriFormati') return wines.filter(function(w){ return w.prezzo_carta>0; });
+    return wines.filter(function(w){ return w.prezzo_carta>0&&w.prezzo_carta<=MESCITA_MAX_PREZZO; });
+  }
   return wines; // 'cantina': tutti
 }
 
@@ -368,35 +436,28 @@ function applyFilters(){ _ensureFrescoCSS();
 
   catsToShow.forEach(function(cat){
     var wines=_getViewFilteredWines(cat).filter(_matchesFilters);
-    if(sortVal==="az") wines.sort(function(a,b){return(a.n||"").localeCompare(b.n||"","it");});
-    else if(sortVal==="za") wines.sort(function(a,b){return(b.n||"").localeCompare(a.n||"","it");});
+    var manuale=(sortVal!=="default");
+    if(sortVal==="az") wines.sort(function(a,b){return _cmpTxt(a.n,b.n);});
+    else if(sortVal==="za") wines.sort(function(a,b){return _cmpTxt(b.n,a.n);});
     else if(sortVal==="asc") wines.sort(function(a,b){return a._p-b._p;});
     else if(sortVal==="desc") wines.sort(function(a,b){return b._p-a._p;});
-    else if(currentView==='mescita'||currentView==='cantina'){
-      wines.sort(function(a,b){
-        var pa=(a.paese||a.nazione||"").localeCompare(b.paese||b.nazione||"","it");
-        if(pa!==0) return pa;
-        var ra=(a.regione||a.zona||"").localeCompare(b.regione||b.zona||"","it");
-        if(ra!==0) return ra;
-        return (a.zona||"").localeCompare(b.zona||"","it");
-      });
-    }
+    else wines.sort(_cmpSommelier);
     if(!wines.length) return;
     total+=wines.length;
 
+    html+="<div class=\"sezione\"><div class=\"sezione-titolo\">"+esc(CAT_LABELS[cat]||cat)+"</div>";
     if(currentView==='calice'){
-      html+="<div class=\"sezione\"><div class=\"sezione-titolo\">"+esc(CAT_LABELS[cat]||cat)+"</div>";
+      // Lista breve: la gerarchia geografica sarebbe rumore, resta piatta.
       wines.forEach(function(w){ html+=_buildCaliceRow(w,cat); });
-      html+="</div>";
-    } else if(currentView==='mescita'){
-      html+="<div class=\"sezione\"><div class=\"sezione-titolo\">"+esc(CAT_LABELS[cat]||cat)+"</div>";
+    } else if(manuale){
+      // Ordinamento esplicito scelto dall'utente: nessun raggruppamento.
       wines.forEach(function(w){ html+=_buildWineRow(w,cat); });
-      html+="</div>";
+    } else if(cat==='AltriFormati'){
+      html+=_renderAltriFormati(wines);
     } else {
-      html+="<div class=\"sezione\"><div class=\"sezione-titolo\">"+esc(CAT_LABELS[cat]||cat)+"</div>";
-      wines.forEach(function(w){ html+=_buildWineRow(w,cat); });
-      html+="</div>";
+      html+=_renderGeo(wines,cat);
     }
+    html+="</div>";
   });
 
   var rc=document.getElementById("results-count");
@@ -410,11 +471,53 @@ function applyFilters(){ _ensureFrescoCSS();
   _syncFabBadge();
 }
 
+// ── RENDER GERARCHICO ─────────────────────────────────────────────────────────
+// Paese → Regione → Cru. Le intestazioni si emettono solo quando il valore cambia
+// e solo se valorizzato: una regione vuota non produce una riga fantasma.
+function _renderGeo(wines,cat){
+  var html="",curP=null,curR=null,curC=null,regEmessa=false;
+  wines.forEach(function(w){
+    var p=w.paese||w.nazione||"Altre Provenienze";
+    var r=w.regione||"";
+    var c=_cru(w);
+    if(p!==curP){ html+="<div class='grp-l1'>"+esc(p)+"</div>"; curP=p; curR=null; curC=null; regEmessa=false; }
+    if(r!==curR){
+      // Le regioni vuote ordinano in coda: se il paese ha già aperto sottosezioni
+      // servono comunque un'intestazione, o i vini finirebbero sotto quella sbagliata.
+      if(r){ html+="<div class='grp-l2'>"+esc(r)+"</div>"; regEmessa=true; }
+      else if(regEmessa){ html+="<div class='grp-l2'>Altre Zone</div>"; }
+      curR=r; curC=null;
+    }
+    if(c!==curC){ if(c) html+="<div class='grp-l3'>"+esc(c)+"</div>"; curC=c; }
+    html+=_buildWineRow(w,cat);
+  });
+  return html;
+}
+
+// Altri Formati: bucket dimensionale → tipologia enologica → ordine sommelier.
+// Profondità volutamente ferma a due livelli: la geografia resta sulla riga.
+function _renderAltriFormati(wines){
+  var html="",byBucket={};
+  wines.forEach(function(w){ (byBucket[w._fmtBucket]=byBucket[w._fmtBucket]||[]).push(w); });
+  FMT_BUCKETS.forEach(function(b){
+    var arr=byBucket[b.key]; if(!arr||!arr.length) return;
+    html+="<div class='grp-l1'>"+esc(b.label)+"</div>";
+    var byTipo={};
+    arr.forEach(function(w){ var k=w._tipoKey||"Altro"; (byTipo[k]=byTipo[k]||[]).push(w); });
+    CAT_ORDER_ENO.forEach(function(t){
+      var list=byTipo[t]; if(!list||!list.length) return;
+      html+="<div class='grp-l2'>"+esc(CAT_LABELS[t]||t)+"</div>";
+      list.sort(_cmpSommelier).forEach(function(w){ html+=_buildWineRow(w,"AltriFormati"); });
+    });
+  });
+  return html;
+}
+
 function _buildWineRow(w,cat){
   var slug=cat.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
   var accentColor=CAT_COLORS[cat]||"#787068";
   var annata=w.annata?"<span class='w-annata'>"+esc(w.annata)+"</span>":"";
-  var formato=w.formato?"<span class='w-formato'>"+esc(w.formato+"L")+"</span>":"";
+  var formato=w.formato?"<span class='w-formato' title='"+esc(_fmtLitri(w.formato))+"'>"+esc(_fmtNome(w.formato))+"</span>":"";
   var meta=[];
   if(w.produttore) meta.push("<span class='w-prod'>"+esc(w.produttore)+"</span>");
   if(w.vitigno)    meta.push("<span class='w-vitigno'>"+esc(w.vitigno)+"</span>");
@@ -560,7 +663,8 @@ function buildSidebar(){
     +"<span class=\"cat-count\">"+countAllFiltered()+"</span></li>";
   catConfig.forEach(function(c){
     var n=_countFiltered(c.nome);
-    html+="<li class=\"cat-item"+(fCat===c.nome?" active":"")+(n===0?" cat-empty":"")+"\" data-cat=\""+esc(c.nome)+"\">"
+    if(n===0) return; // niente chip fantasma: il conteggio è già filtrato per vista
+    html+="<li class=\"cat-item"+(fCat===c.nome?" active":"")+"\" data-cat=\""+esc(c.nome)+"\">"
       +"<span class=\"cat-dot\" style=\"background:"+c.colore+"\"></span>"
       +"<span class=\"cat-label\">"+esc(c.label||c.nome)+"</span>"
       +"<span class=\"cat-count\">"+n+"</span></li>";
@@ -631,7 +735,7 @@ function buildSortBar(){
   var wrap=document.getElementById("sort-bar-wrap"); if(!wrap) return;
   _ensureFrescoCSS();
   var cur=(document.getElementById("sort-sel")||{}).value||"default";
-  var opts=[["default","Default"],["az","A → Z"],["za","Z → A"],["asc","Prezzo ↑"],["desc","Prezzo ↓"]];
+  var opts=[["default","Ordine sommelier"],["az","A → Z"],["za","Z → A"],["asc","Prezzo ↑"],["desc","Prezzo ↓"]];
   var html="<span class=\"sort-label\">Ordina</span><select class=\"sort-select\" id=\"sort-sel\" onchange=\"applyFilters()\">";
   opts.forEach(function(o){ html+="<option value=\""+o[0]+"\""+(cur===o[0]?" selected":"")+">"+o[1]+"</option>"; });
   html+="</select>";
@@ -702,7 +806,7 @@ function openModal(id){
   if(w.b) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Al calice</div><div class=\"modal-p-val\">"+esc(w.b)+"</div></div>";
   if(prezzoEl) prezzoEl.innerHTML=p;
   var body="";
-  [["Produttore",w.produttore],["Formato",w.formato?(w.formato+"L"):null],["Regione",w.regione],
+  [["Produttore",w.produttore],["Formato",w.formato?(_fmtNome(w.formato)+" · "+_fmtLitri(w.formato)):null],["Regione",w.regione],
    ["Zona",w.zona&&w.zona!==w.regione?w.zona:null],["Nazione",w.nazione],["Vitigno",w.vitigno],["Tipologia",w.tipologia]
   ].forEach(function(r){ if(r[1]) body+="<div class=\"modal-row\"><span class=\"modal-lbl\">"+r[0]+"</span><span class=\"modal-val\">"+esc(r[1])+"</span></div>"; });
   if(bodyEl) bodyEl.innerHTML=body||"<p style=\"color:var(--grey);font-size:13px\">Nessun dettaglio disponibile.</p>";

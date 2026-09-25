@@ -775,6 +775,14 @@ body.has-sel #sb-status{display:none}
   .grp-l1{font-size:14px;letter-spacing:.18em;margin:14px -14px 0;padding:11px 14px 9px}
   .grp-l2{font-size:16px}
 }
+/* Mobile: tipologie in griglia a 3 colonne, niente scroll orizzontale */
+@media(max-width:1023px){
+  .chipnav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible;padding:8px 14px}
+  .chip{height:30px;padding:0 6px;gap:5px;font-size:10px;letter-spacing:.04em;min-width:0}
+  .chip i{width:6px;height:6px}
+  .chip b{font-size:9px}
+}
+@media(max-width:380px){.chip{font-size:9.5px;letter-spacing:.01em;padding:0 4px;gap:4px}.chip i{display:none}}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .wine-col .page-wrap{background:rgba(249,246,240,.94)}
   .chipnav{background:var(--bg)}

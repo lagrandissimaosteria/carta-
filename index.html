@@ -783,6 +783,9 @@ body.has-sel #sb-status{display:none}
   .chip b{font-size:9px}
 }
 @media(max-width:380px){.chip{font-size:9.5px;letter-spacing:.01em;padding:0 4px;gap:4px}.chip i{display:none}}
+/* Ordina a sinistra, In fresco a destra */
+.sort-bar{flex:1;min-width:0}
+.sort-bar .fresco-toggle{margin-left:auto}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .wine-col .page-wrap{background:rgba(249,246,240,.94)}
   .chipnav{background:var(--bg)}

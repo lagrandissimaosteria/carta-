@@ -919,7 +919,7 @@ function buildSortBar(){
   var wrap=document.getElementById("sort-bar-wrap"); if(!wrap) return;
   _ensureFrescoCSS();
   var cur=(document.getElementById("sort-sel")||{}).value||"default";
-  var opts=[["default","Ordine sommelier"],["az","A → Z"],["za","Z → A"],["asc","Prezzo ↑"],["desc","Prezzo ↓"]];
+  var opts=[["default","Per produttore"],["az","A → Z"],["za","Z → A"],["asc","Prezzo ↑"],["desc","Prezzo ↓"]];
   var html="<span class=\"sort-label\">Ordina</span><select class=\"sort-select\" id=\"sort-sel\" onchange=\"applyFilters()\">";
   opts.forEach(function(o){ html+="<option value=\""+o[0]+"\""+(cur===o[0]?" selected":"")+">"+o[1]+"</option>"; });
   html+="</select>";

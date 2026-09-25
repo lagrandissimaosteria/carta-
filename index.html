@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+<link rel="preload" as="image" href="cantina-blur.webp" media="(max-width:1023px)">
+<link rel="preload" as="image" href="cantina.webp">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Carta dei Vini — Lagrandissima</title>
@@ -733,6 +735,37 @@ body.has-sel #sb-status{display:none}
   .mobile-nav-btn,.mobile-nav-btn:first-child{border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:14px 24px}
   .mobile-nav-btn:active{background:rgba(255,255,255,.1)}
   .mobile-nav-btn>span:first-child{text-align:left;padding-right:12px}
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SFONDO CANTINA — foto + lista satinata
+   ════════════════════════════════════════════════════════════════ */
+:root{--paper:rgba(249,246,240,.8);--paper-bar:rgba(249,246,240,.88)}
+.chipnav,.grp-l1{background:var(--paper-bar);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+@media(min-width:1024px){
+  .wine-col{background:#2a2622 url(cantina.webp) center 30%/cover no-repeat}
+  .wine-col .page-wrap{
+    background:var(--paper);
+    -webkit-backdrop-filter:blur(22px) saturate(1.15);backdrop-filter:blur(22px) saturate(1.15);
+    box-shadow:0 10px 60px rgba(0,0,0,.35);
+  }
+  .chipnav{border-radius:18px 18px 0 0}
+}
+@media(max-width:1023px){
+  /* Mobile: foto pre-sfocata (nessun backdrop-filter sulla lista lunga = scroll fluido) */
+  body::before{
+    content:"";position:fixed;top:0;left:0;right:0;height:140vh;z-index:-1;pointer-events:none;
+    background:linear-gradient(rgba(249,246,240,.74),rgba(249,246,240,.74)),url(cantina-blur.webp) center top/cover no-repeat;
+  }
+  .mobile-landing{
+    background:
+      linear-gradient(175deg,rgba(48,77,101,.86) 0%,rgba(30,51,71,.9) 60%,rgba(22,40,64,.94) 100%),
+      #1e3347 url(cantina.webp) center/cover no-repeat;
+  }
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .wine-col .page-wrap{background:rgba(249,246,240,.94)}
+  .chipnav,.grp-l1{background:var(--bg)}
 }
 </style>
 </head>

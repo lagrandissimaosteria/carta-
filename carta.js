@@ -128,13 +128,7 @@ function _ensureFrescoCSS(){
     +"@media(max-width:640px){.w-fresco{font-size:1.55em;margin-left:6px}}"
     +"@media(prefers-reduced-motion:reduce){.w-fresco{animation:none;opacity:1;transform:none;text-shadow:0 0 3px rgba(130,222,255,.9),0 0 8px rgba(40,170,235,.6),0 0 15px rgba(40,170,235,.35)}}"
     +".fresco-legenda{font-family:inherit;font-size:11px;letter-spacing:.05em;color:#8C7E72;text-align:center;padding:26px 12px 10px;border-top:1px solid rgba(26,22,18,.07);margin-top:14px}"
-    +".fresco-legenda .w-fresco{font-size:1em;margin:0 6px 0 0}"
-    +".fresco-toggle{margin-left:12px;padding:5px 13px;border:1px solid rgba(15,159,224,.45);border-radius:999px;background:transparent;color:#0f9fe0;font-family:inherit;font-size:12px;letter-spacing:.04em;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,border-color .15s;line-height:1.4}"
-    +".fresco-toggle:hover{background:rgba(15,159,224,.08)}"
-    +".fresco-toggle.active{background:#0f9fe0;border-color:#0f9fe0;color:#fff;box-shadow:0 0 8px rgba(40,170,235,.45)}"
-    +"@media(max-width:640px){.fresco-toggle{margin-left:8px;padding:5px 11px;font-size:11px}}"
-    +".drawer-fresco{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;box-sizing:border-box;margin:2px 0 16px;padding:12px;font-size:13px;letter-spacing:.05em}"
-    +".drawer-fresco .df-ice{font-size:1.25em;line-height:1}";
+    +".fresco-legenda .w-fresco{font-size:1em;margin:0 6px 0 0}";
   document.head.appendChild(st);
 }
 function _setStatus(state){
@@ -360,9 +354,10 @@ async function init(){
     var _wl=document.getElementById("wine-list");
     if(_wl) _wl.addEventListener("click",function(e){
       if(e.target.closest("[data-sel]")) return; // gestito dal listener globale
-      var go=e.target.closest(".chip[data-go]"); if(go){ _goSection(go.getAttribute("data-go")); return; }
       var el=e.target.closest(".vino[data-id],.ref[data-id]"); if(el) openModal(el.getAttribute("data-id"));
     });
+    var _cn=document.getElementById("chipnav");
+    if(_cn) _cn.addEventListener("click",function(e){ var go=e.target.closest(".chip[data-go]"); if(go) _goSection(go.getAttribute("data-go")); });
     document.addEventListener("click",function(e){
       var b=e.target.closest("[data-sel]"); if(b){ e.preventDefault(); toggleSel(b.getAttribute("data-sel")); }
     });
@@ -485,10 +480,10 @@ function applyFilters(){ _ensureFrescoCSS();
       +"<h2 class=\"sezione-titolo\">"+esc(CAT_LABELS[cat]||cat)+"<span class=\"sez-n\">"+wines.length+"</span></h2>";
     if(currentView==='calice'){
       // Lista breve: la gerarchia geografica sarebbe rumore, resta piatta.
-      wines.forEach(function(w){ html+=_buildCaliceRow(w,cat); });
+      wines.forEach(function(w){ html+=_buildSingle(w,"calice"); });
     } else if(manuale){
       // Ordinamento esplicito scelto dall'utente: nessun raggruppamento.
-      wines.forEach(function(w){ html+=_buildWineRow(w,cat); });
+      wines.forEach(function(w){ html+=_buildSingle(w); });
     } else if(cat==='AltriFormati'){
       html+=_renderAltriFormati(wines);
     } else {
@@ -497,18 +492,17 @@ function applyFilters(){ _ensureFrescoCSS();
     html+="</section>";
   });
   // Indice tipologie: navigazione rapida, soprattutto da mobile.
+  var navEl=document.getElementById("chipnav"), nav="";
   if(navItems.length>1){
-    var nav="<nav class=\"chipnav\" aria-label=\"Tipologie\">";
     navItems.forEach(function(it,i){
       nav+="<button type=\"button\" class=\"chip"+(i===0?" on":"")+"\" data-go=\""+esc(it.cat)+"\" style=\"--c:"+(CAT_COLORS[it.cat]||"#787068")+"\">"
         +"<i></i>"+esc(CAT_LABELS[it.cat]||it.cat)+"<b>"+it.n+"</b></button>";
     });
-    html=nav+"</nav>"+html;
   }
+  if(navEl) navEl.innerHTML=nav;
 
   var rc=document.getElementById("results-count");
-  var viewLabel=currentView==='calice'?"al calice":currentView==='mescita'?"carta breve":"in cantina";
-  if(rc) rc.textContent=total+" etichett"+(total===1?"a":"e")+" "+viewLabel;
+  if(rc) rc.textContent=total+" etichett"+(total===1?"a":"e");
   var wl=document.getElementById("wine-list");
   var _legenda = html.indexOf("w-fresco")>=0
     ? "<div class=\"fresco-legenda\"><span class=\"w-fresco\">\u2744\uFE0E</span>servito in fresco</div>"
@@ -522,19 +516,16 @@ function applyFilters(){ _ensureFrescoCSS();
 // L'offset dipende dalle barre sticky reali (mobile: indietro+ricerca+ordina,
 // desktop: nessuna), quindi si misura invece di cablarlo nel CSS.
 function _layoutSticky(){
-  var top=0,root=document.documentElement;
-  ["search-bar-wrap","sort-bar-wrap"].forEach(function(id){
-    var el=document.getElementById(id); if(!el||!el.offsetHeight) return;
-    var cs=getComputedStyle(el);
-    if(cs.position==="sticky"&&cs.top!=="auto") top=Math.max(top,parseFloat(cs.top)+el.offsetHeight);
-  });
-  var nav=document.querySelector("#wine-list .chipnav");
+  // Unica barra fissa sopra la lista: il pulsante "Indietro" su mobile.
+  var root=document.documentElement, back=document.getElementById("btn-back-mobile");
+  var top=(back&&getComputedStyle(back).position==="fixed"&&back.offsetHeight)?back.offsetHeight:0;
+  var nav=document.getElementById("chipnav");
   root.style.setProperty("--stick-top",top+"px");
   root.style.setProperty("--nav-h",(nav?nav.offsetHeight:0)+"px");
 }
 var _spyRaf=0,_spyCur=null;
 function _spy(){
-  var nav=document.querySelector("#wine-list .chipnav"); if(!nav) return;
+  var nav=document.getElementById("chipnav"); if(!nav||!nav.firstChild) return;
   var lim=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--stick-top"))||0)+nav.offsetHeight+16;
   var secs=document.querySelectorAll("#wine-list .sezione"),cur=secs[0];
   for(var i=0;i<secs.length;i++){ if(secs[i].getBoundingClientRect().top<=lim) cur=secs[i]; else break; }
@@ -651,15 +642,21 @@ function _renderGeo(wines,cat){
 }
 // Blocco produttore: il nome compare una volta sola, sotto tutte le sue etichette.
 // Se tutte condividono la stessa zona/cru la si porta nell'intestazione.
-function _buildProdBlock(items){
+function _geoTxt(w){ return [_cru(w),w.regione,w.paese].filter(Boolean).join(" \u00b7 "); }
+// Riga isolata (ordinamenti manuali, vista calice): stesso blocco, geografia sulla riga.
+function _buildSingle(w,mode){
+  return "<div class='prod'><div class='prod-h'><span class='prod-n'>"+esc(w.produttore||"")+"</span></div>"+_buildRefRow(w,_geoTxt(w),mode)+"</div>";
+}
+function _buildProdBlock(items,geo){
   var zone=items.map(_cru), z0=zone[0];
-  var shared=!!z0&&zone.every(function(z){ return z===z0; });
+  var shared=!geo&&!!z0&&zone.every(function(z){ return z===z0; });
   var html="<div class='prod'><div class='prod-h'><span class='prod-n'>"+esc(items[0].produttore||"Produttore n.d.")+"</span>"
     +(shared?"<span class='prod-z'>"+esc(z0)+"</span>":"")+"</div>";
-  items.forEach(function(w){ html+=_buildRefRow(w,shared?"":_cru(w)); });
+  items.forEach(function(w){ html+=_buildRefRow(w,geo?_geoTxt(w):(shared?"":_cru(w))); });
   return html+"</div>";
 }
-function _buildRefRow(w,zona){
+function _buildRefRow(w,zona,mode){
+  var cal=(mode==="calice");
   var id=esc(String(w.id)), on=_isSel(w.id);
   var meta=[];
   if(w.vitigno) meta.push("<i>"+esc(w.vitigno)+"</i>");
@@ -671,10 +668,11 @@ function _buildRefRow(w,zona){
     +  (meta.length?"<div class='ref-meta'>"+meta.join("<span class='w-sep'> · </span>")+"</div>":"")
     +"</div>"
     +"<div class='ref-price'>"
-    +  (w.p?"<span class='w-price'>"+esc(w.p)+"</span>":"<span class='w-price w-price-na'>su richiesta</span>")
-    +  (w.b?"<span class='ref-calice'>calice "+esc(w.b)+"</span>":"")
+    +  (cal?"<span class='w-price'>"+esc(w.b)+"</span><span class='ref-calice'>al calice</span>"
+         :(w.p?"<span class='w-price'>"+esc(w.p)+"</span>":"<span class='w-price w-price-na'>su richiesta</span>")
+          +(w.b?"<span class='ref-calice'>calice "+esc(w.b)+"</span>":""))
     +"</div>"
-    +"<button type='button' class='sel-btn' data-sel='"+id+"' aria-pressed='"+on+"' aria-label='"+(on?"Togli dalla selezione":"Aggiungi alla selezione")+"'></button>"
+    +(cal?"":"<button type='button' class='sel-btn' data-sel='"+id+"' aria-pressed='"+on+"' aria-label='"+(on?"Togli dalla selezione":"Aggiungi alla selezione")+"'></button>")
     +"</div>";
 }
 
@@ -691,7 +689,7 @@ function _renderAltriFormati(wines){
     CAT_ORDER_ENO.forEach(function(t){
       var list=byTipo[t]; if(!list||!list.length) return;
       html+="<div class='grp-l2'>"+esc(CAT_LABELS[t]||t)+"</div>";
-      list.sort(_cmpSommelier).forEach(function(w){ html+=_buildWineRow(w,"AltriFormati"); });
+      _runs(list.sort(_cmpSommelier),_prodId).forEach(function(G){ html+=_buildProdBlock(G.items,true); });
     });
   });
   return html;
@@ -765,7 +763,8 @@ function _syncViewUI(view){
   var isMescita=(view==='mescita');
   // Filtri sidebar: visibili con cantina E mescita
   var sf=document.getElementById("sidebar-filters");
-  if(sf){ sf.classList.toggle("visible", isCantina||isMescita); }
+  if(sf){ sf.classList.toggle("visible", isCantina); }
+  document.body.classList.toggle("view-cantina", isCantina);
   // Search bar destra: visibile solo con cantina
   var sbw=document.getElementById("search-bar-wrap");
   if(sbw){ sbw.classList.toggle("visible",isCantina); }
@@ -833,27 +832,6 @@ window.addEventListener("popstate", function(e){
 function buildSidebar(){
   var inner=document.getElementById("sidebar-inner"); if(!inner) return;
   var html="";
-  var catOpen=(fCat!=="tutti");
-  // Titolo sezione categoria dipende dalla vista
-  var catTitle = currentView==='mescita' ? "Carta Breve" : "Categoria";
-  html+="<div class=\"sb-acc-wrap"+(catOpen?" open":"")+" \" id=\"wrap-acc-cat\">"
-    +"<div class=\"sb-acc-head\" onclick=\"_toggleAcc(this)\">"
-    +"<span class=\"sb-acc-title\">"+catTitle+"</span>"
-    +"<span class=\"sb-acc-arrow\">▼</span></div>"
-    +"<div class=\"sb-acc-body\" id=\"acc-cat\">"
-    +"<ul class=\"cat-list\">"
-    +"<li class=\"cat-item"+(fCat==="tutti"?" active":"")+"\" data-cat=\"tutti\">"
-    +"<span class=\"cat-dot\"></span><span class=\"cat-label\">Tutte le etichette</span>"
-    +"<span class=\"cat-count\">"+countAllFiltered()+"</span></li>";
-  catConfig.forEach(function(c){
-    var n=_countFiltered(c.nome);
-    if(n===0) return; // niente chip fantasma: il conteggio è già filtrato per vista
-    html+="<li class=\"cat-item"+(fCat===c.nome?" active":"")+"\" data-cat=\""+esc(c.nome)+"\">"
-      +"<span class=\"cat-dot\" style=\"background:"+c.colore+"\"></span>"
-      +"<span class=\"cat-label\">"+esc(c.label||c.nome)+"</span>"
-      +"<span class=\"cat-count\">"+n+"</span></li>";
-  });
-  html+="</ul></div></div>";
   // Filtri avanzati solo per cantina
   if(currentView==='cantina'){
     [
@@ -919,12 +897,12 @@ function buildSortBar(){
   var wrap=document.getElementById("sort-bar-wrap"); if(!wrap) return;
   _ensureFrescoCSS();
   var cur=(document.getElementById("sort-sel")||{}).value||"default";
-  var opts=[["default","Per produttore"],["az","A → Z"],["za","Z → A"],["asc","Prezzo ↑"],["desc","Prezzo ↓"]];
-  var html="<span class=\"sort-label\">Ordina</span><select class=\"sort-select\" id=\"sort-sel\" onchange=\"applyFilters()\">";
+  var opts=[["default","Per produttore"],["asc","Prezzo crescente"],["desc","Prezzo decrescente"],["az","Nome A → Z"],["za","Nome Z → A"]];
+  var html="<select class=\"sort-select\" id=\"sort-sel\" aria-label=\"Ordina\" onchange=\"applyFilters()\">";
   opts.forEach(function(o){ html+="<option value=\""+o[0]+"\""+(cur===o[0]?" selected":"")+">"+o[1]+"</option>"; });
   html+="</select>";
   if(fFresco||_hasFresco()){
-    html+="<button type=\"button\" class=\"fresco-toggle"+(fFresco?" active":"")+"\" onclick=\"toggleFresco()\" aria-pressed=\""+(fFresco?"true":"false")+"\">\u2744\uFE0E In fresco</button>";
+    html+="<button type=\"button\" class=\"fresco-toggle"+(fFresco?" active":"")+"\" onclick=\"toggleFresco()\" aria-pressed=\""+(fFresco?"true":"false")+"\"><span class=\"ico\">\u2744\uFE0E</span>In fresco</button>";
   }
   wrap.innerHTML=html;
 }
@@ -1016,7 +994,7 @@ document.addEventListener("keydown",function(e){
 });
 
 // ── DRAWER FILTRI MOBILE ──────────────────────────────────────────────────────
-function _countActiveFilters(){ var n=0; if(fCat!=="tutti")n++; if(fSearch)n++; if(pMin>0||pMax<pMaxG)n++; if(fState.paese)n++; if(fState.regione)n++; if(fState.produttore)n++; if(fState.vitigno)n++; if(fState.annata)n++; if(fFresco)n++; return n; }
+function _countActiveFilters(){ var n=0; if(fSearch)n++; if(pMin>0||pMax<pMaxG)n++; if(fState.paese)n++; if(fState.regione)n++; if(fState.produttore)n++; if(fState.vitigno)n++; if(fState.annata)n++; if(fFresco)n++; return n; }
 function _syncFabBadge(){
   var n=_countActiveFilters();
   var b=document.getElementById("fab-badge");

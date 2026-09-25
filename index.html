@@ -147,29 +147,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
     box-sizing:border-box;
   }
 
-  /* ── SEARCH BAR ── */
-  .search-bar-wrap{
-    width:100%;padding:24px 52px 0;box-sizing:border-box;
-    max-height:0;overflow:hidden;opacity:0;
-    transition:max-height .35s ease,opacity .3s ease,padding .3s ease;
-  }
-  .search-bar-wrap.visible{max-height:80px;opacity:1;padding:24px 52px 0}
-  .search-bar-inner{position:relative}
-  .search-input{
-    width:100%;padding:11px 40px 11px 16px;
-    border:1px solid var(--line);border-radius:8px;
-    background:#fff;color:var(--ink);
-    font-family:inherit;font-size:14px;outline:none;
-    box-shadow:0 1px 6px rgba(0,0,0,.05);
-    transition:border-color .2s,box-shadow .2s;
-  }
-  .search-input:focus{border-color:var(--hero);box-shadow:0 2px 12px rgba(91,127,166,.15)}
-  .search-input::placeholder{color:var(--grey);opacity:.6}
-  .search-clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--grey);display:none;line-height:1;padding:0;background:none;border:none;cursor:pointer}
-  .search-clear.show{display:block}
-
-  .wine-col .sort-bar{width:100%;padding:16px 52px 12px;box-sizing:border-box;background:transparent;border-bottom:none}
-  .wine-col .main-content{width:100%;padding:28px 52px 52px;box-sizing:border-box}
+  .wine-col .main-content{width:100%;padding:36px 52px 52px;box-sizing:border-box}
 
   .mobile-landing{display:none!important}
   .btn-back-mobile{display:none!important}
@@ -237,14 +215,6 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   display:block;width:100%;text-align:left;
 }
 .btn-reset-all:hover{color:rgba(255,255,255,.7)}
-.sort-bar{display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--line)}
-.sort-label{font-family:var(--font-sans);font-size:9px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
-.sort-select{border:1px solid var(--line);border-radius:0;background:var(--bg);color:var(--ink);font-family:var(--font-sans);font-size:11px;padding:4px 8px;outline:none;cursor:pointer;letter-spacing:.02em}
-.results-bar{margin-bottom:24px}
-.results-count{
-  font-family:var(--font-sans);font-size:9px;font-weight:400;
-  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4);
-}
 .sezione{margin-bottom:44px}
 .sezione-titolo{
   font-family:var(--font-sans);font-size:10px;font-weight:500;
@@ -544,71 +514,7 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
   .modal-body{padding:14px 16px}
   .modal-prezzo{padding:10px 16px}
 
-  /* ── HEADER STICKY: search + sort + count come blocco unico ── */
-  /* Raggruppa visivamente i tre elementi separati senza toccare l'HTML */
-  .search-bar-wrap,
-  #sort-bar-wrap,
-  .main-content>.results-bar{
-    position:sticky;z-index:40;
-    background:var(--bg);
-  }
-  /* Search bar */
-  .search-bar-wrap{
-    top:44px;
-    padding:10px 14px 6px;
-    max-height:none!important;opacity:1!important;overflow:visible!important;
-    border-top:none;
-  }
-  .search-bar-inner{position:relative}
-  /* Icona lente SVG via background-image — nessun pseudo-elemento flottante */
-  .search-bar-wrap .search-input{
-    width:100%;
-    padding:10px 36px 10px 38px;
-    border:1px solid var(--line-s);
-    border-radius:8px;
-    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20' fill='none'%3E%3Ccircle cx='8.5' cy='8.5' r='5.5' stroke='%238C7E72' stroke-width='1.5'/%3E%3Cpath d='M13 13L17 17' stroke='%238C7E72' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat 11px center;
-    font-family:var(--font-sans);font-size:14px;color:var(--ink);
-    outline:none;-webkit-appearance:none;
-    box-shadow:0 1px 4px rgba(0,0,0,.05);
-    transition:border-color .18s,box-shadow .18s;
-  }
-  .search-bar-wrap .search-input:focus{
-    border-color:var(--hero);
-    box-shadow:0 0 0 3px rgba(48,77,101,.1);
-  }
-  .search-bar-wrap .search-input::placeholder{color:var(--ink-4)}
-  .search-clear{
-    position:absolute;right:10px;top:50%;transform:translateY(-50%);
-    font-size:17px;color:var(--ink-4);display:none;
-    line-height:1;padding:2px 4px;background:none;border:none;cursor:pointer;
-  }
-  .search-clear.show{display:block}
-  /* Sort bar: sotto la search, stessa fascia sticky */
-  #sort-bar-wrap{
-    top:calc(44px + 50px); /* altezza back-btn + search */
-    padding:4px 14px 6px;
-    display:flex;align-items:center;justify-content:space-between;
-    border-bottom:1px solid var(--line);
-  }
-  .sort-bar{display:flex;align-items:center;gap:6px;padding:0;border:none;background:none}
-  .sort-label{
-    font-family:var(--font-sans);font-size:9px;font-weight:500;
-    letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4);
-  }
-  .sort-select{
-    border:none;border-bottom:1px solid var(--line-s);
-    background:transparent;color:var(--ink-2);
-    font-family:var(--font-sans);font-size:11px;
-    padding:2px 4px;outline:none;cursor:pointer;
-    -webkit-appearance:none;appearance:none;
-  }
-  /* Contatore risultati: sulla stessa riga del sort (inline via flex sul parent) */
-  .results-bar{display:inline-flex;align-items:center;margin:0}
-  .results-count{
-    font-family:var(--font-sans);font-size:9px;
-    letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);
-  }
-  .main-content{padding:4px 0 80px}
+  .main-content{padding:12px 0 96px}
 
   .mobile-list-view #wine-list{animation:listEnter .25s ease forwards}
   @keyframes listEnter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -620,56 +526,92 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 }
 
 /* ════════════════════════════════════════════════════════════════
-   CARTA: tipologia → paese → regione → produttore → referenze
+   SISTEMA PILLOLA — un solo stile per ogni controllo della carta
    ════════════════════════════════════════════════════════════════ */
-#wine-list .sezione{margin-bottom:40px;scroll-margin-top:calc(var(--stick-top,0px) + var(--nav-h,0px))}
-#wine-list .sezione-titolo{
-  display:flex;align-items:baseline;gap:10px;
-  font-family:var(--font-serif);font-size:28px;font-weight:400;font-style:italic;
-  letter-spacing:0;text-transform:none;color:var(--ink);
-  padding:26px 16px 10px;border-bottom:2px solid var(--accent,var(--line-s));margin:0;
-}
-.sez-n{font-family:var(--font-sans);font-style:normal;font-size:10px;letter-spacing:.12em;color:var(--ink-4);font-variant-numeric:tabular-nums}
-/* Indice tipologie */
-.chipnav{
-  position:sticky;top:var(--stick-top,0px);z-index:30;
-  display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
-  background:var(--bg);padding:10px 16px;border-bottom:1px solid var(--line);
-}
-.chipnav::-webkit-scrollbar{display:none}
-.chip{
-  flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
-  height:32px;padding:0 13px;border:1px solid var(--line-s);border-radius:999px;background:var(--bg);
-  font-family:var(--font-sans);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);
+:root{--pill-h:34px}
+.pill,.chip,.sort-select,.fresco-toggle,.btn-reset-all,.drawer-apply button,.sel-cta,.sel-go,.sel-clear{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  height:var(--pill-h);padding:0 15px;margin:0;
+  border:1px solid var(--line-s);border-radius:999px;background:var(--bg);color:var(--ink-2);
+  font-family:var(--font-sans);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+  line-height:1;white-space:nowrap;cursor:pointer;box-shadow:none;
   transition:background .15s,color .15s,border-color .15s;
 }
-.chip i{width:7px;height:7px;border-radius:50%;background:var(--c)}
-.chip b{font-weight:400;color:var(--ink-4);font-variant-numeric:tabular-nums}
-.chip.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
-.chip.on b{color:rgba(249,246,240,.6)}
-/* Paese (sticky sotto l'indice) e regione */
-.grp-l1{
-  position:sticky;top:calc(var(--stick-top,0px) + var(--nav-h,0px));z-index:20;background:var(--bg);
-  font-family:var(--font-sans);font-size:11px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--ink);
-  padding:18px 16px 8px;border-bottom:1px solid var(--line-s);margin:0;
+.pill:hover,.chip:hover,.sort-select:hover,.fresco-toggle:hover{border-color:var(--ink-3);background:var(--bg)}
+.chip.on,.fresco-toggle.active,.sel-cta[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg);box-shadow:none}
+
+/* Ricerca */
+.search-bar-wrap{display:none;margin:0 0 14px}
+.search-bar-wrap.visible{display:block}
+.search-bar-inner{position:relative}
+.search-input.pill{
+  width:100%;height:42px;padding:0 42px 0 42px;justify-content:flex-start;
+  text-transform:none;letter-spacing:.01em;font-size:14px;font-weight:400;color:var(--ink);background:#fff;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20' fill='none'%3E%3Ccircle cx='8.5' cy='8.5' r='5.5' stroke='%238C7E72' stroke-width='1.5'/%3E%3Cpath d='M13 13L17 17' stroke='%238C7E72' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:16px center;outline:none;-webkit-appearance:none;appearance:none;cursor:text;
 }
-.grp-l2{font-family:var(--font-serif);font-style:italic;font-size:17px;font-weight:400;color:var(--ink-2);padding:18px 16px 2px;margin:0}
-/* Blocco produttore */
-.prod{position:relative;margin:10px 0 4px;padding:0 12px 0 18px}
-.prod::before{content:"";position:absolute;left:0;top:4px;bottom:6px;width:2px;background:var(--accent,var(--line-s));opacity:.55}
-.prod-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:2px 0 2px}
+.search-input.pill::-webkit-search-cancel-button{display:none}
+.search-input.pill:focus{border-color:var(--hero);box-shadow:0 0 0 3px rgba(48,77,101,.1)}
+.search-input.pill::placeholder{color:var(--ink-4)}
+.search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;font-size:18px;line-height:1;color:var(--ink-3);display:none;align-items:center;justify-content:center}
+.search-clear.show{display:flex}
+.search-clear:hover{background:var(--bg-alt)}
+
+/* Indice tipologie (sticky) */
+.chipnav{
+  position:sticky;top:var(--stick-top,0px);z-index:30;
+  display:flex;flex-wrap:wrap;gap:8px;background:var(--bg);padding:10px 0;
+}
+.chipnav:empty{display:none}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--c);flex-shrink:0}
+.chip b{font-weight:400;color:var(--ink-4);font-variant-numeric:tabular-nums}
+.chip.on b{color:rgba(249,246,240,.6)}
+
+/* Strumenti sotto le tipologie: ordina · in fresco · conteggio */
+.tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0 14px;border-bottom:1px solid var(--line)}
+.sort-bar{display:flex;align-items:center;gap:8px;padding:0;border:0;background:none}
+.sort-select{
+  -webkit-appearance:none;appearance:none;outline:none;padding:0 32px 0 15px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234A4139' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;
+}
+.sort-select:focus-visible{border-color:var(--hero)}
+.fresco-toggle{color:#0f9fe0;border-color:rgba(15,159,224,.45)}
+.fresco-toggle .ico{font-size:13px;line-height:1}
+.results-count{margin-left:auto;font-family:var(--font-sans);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4);white-space:nowrap}
+
+/* Gerarchia: tipologia → paese → regione → produttore → referenze */
+#wine-list .sezione{margin:0 0 36px;scroll-margin-top:calc(var(--stick-top,0px) + var(--nav-h,0px))}
+#wine-list .sezione-titolo{
+  display:flex;align-items:baseline;gap:12px;margin:0;
+  font-family:var(--font-serif);font-size:30px;font-weight:400;font-style:italic;letter-spacing:0;text-transform:none;color:var(--ink);
+  padding:30px 0 10px;border-bottom:2px solid var(--accent,var(--line-s));
+}
+.sez-n{font-family:var(--font-sans);font-style:normal;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);font-variant-numeric:tabular-nums}
+.sez-n::after{content:" etichette"}
+.grp-l1{
+  position:sticky;top:calc(var(--stick-top,0px) + var(--nav-h,0px));z-index:20;background:var(--bg);margin:0;
+  font-family:var(--font-sans);font-size:11px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--ink);
+  padding:20px 0 8px;border-bottom:1px solid var(--line);
+}
+.grp-l2{font-family:var(--font-serif);font-style:italic;font-size:18px;font-weight:400;color:var(--ink-2);padding:20px 0 2px;margin:0}
+.prod{position:relative;margin:12px 0 6px;padding:0 0 0 18px}
+.prod::before{content:"";position:absolute;left:0;top:3px;bottom:8px;width:2px;border-radius:2px;background:var(--accent,var(--line-s));opacity:.5}
+.prod-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding-bottom:2px}
 .prod-n{font-family:var(--font-sans);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
-.prod-z{font-family:var(--font-sans);font-size:11px;color:var(--ink-3)}
-.ref{display:flex;align-items:center;gap:12px;padding:8px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.prod-z{font-family:var(--font-sans);font-size:11.5px;color:var(--ink-3)}
+.ref{display:flex;align-items:center;gap:14px;min-height:54px;padding:6px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .ref+.ref{border-top:1px solid var(--line)}
 .ref:hover .ref-nome{color:var(--hero)}
 .ref-main{flex:1;min-width:0}
 .ref-nome{font-family:var(--font-serif);font-size:16px;line-height:1.3;color:var(--ink);transition:color .15s}
 .ref-nome .w-annata{font-size:12px;white-space:nowrap}
 .ref-nome .w-formato{margin-left:4px}
+.ref-nome .w-fresco{font-size:1em;margin-left:6px}
 .ref-meta{font-family:var(--font-sans);font-size:11.5px;color:var(--ink-3);margin-top:2px;line-height:1.4}
 .ref-meta i{font-style:italic}
-.ref-price{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right}
+.ref-price{flex-shrink:0;width:92px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+.ref-price .w-price{font-size:16px}
 .ref-calice{font-family:var(--font-sans);font-size:10.5px;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
 .w-price-na{font-size:11px;font-weight:400;color:var(--ink-3);font-style:italic}
 .sel-btn{
@@ -683,34 +625,35 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;color:inhe
 .sel-btn[aria-pressed="true"]{background:var(--hero);border-color:var(--hero);color:#fff}
 .sel-btn[aria-pressed="true"]::before{content:"\2713";font-size:14px;font-weight:500}
 .sel-btn:active{transform:scale(.9)}
-/* CTA nel dettaglio */
+.fresco-legenda{border-top:0}
+
+/* Scheda dettaglio */
 .modal-prezzo{flex-wrap:wrap;align-items:center}
-.sel-cta{
-  margin-left:auto;height:40px;padding:0 18px;border:1px solid var(--hero);color:var(--hero);
-  font-family:var(--font-sans);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
-  transition:background .15s,color .15s;
-}
-.sel-cta[aria-pressed="true"]{background:var(--hero);color:#fff}
-/* Pulsante selezione */
+.sel-cta{margin-left:auto;height:40px;padding:0 18px;border-color:var(--hero);color:var(--hero)}
+.sel-cta[aria-pressed="true"]{background:var(--hero);border-color:var(--hero);color:#fff}
+.modal-card{border-radius:18px;overflow:hidden}
+.modal-hero-div{border-radius:0}
+
+/* Selezione */
 .sel-fab{
   display:none;position:fixed;bottom:20px;right:16px;z-index:91;
-  height:44px;padding:0 8px 0 18px;border-radius:22px;
+  height:44px;padding:0 8px 0 18px;border-radius:999px;
   background:var(--hero);color:#fff;align-items:center;gap:10px;
-  font-family:var(--font-sans);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;
+  font-family:var(--font-sans);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
   box-shadow:0 4px 20px rgba(30,51,71,.35);
 }
-.sel-fab .sel-n{background:#fff;color:var(--hero);border-radius:14px;min-width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.sel-fab .sel-n{background:#fff;color:var(--hero);border-radius:999px;min-width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
 body.has-sel .sel-fab{display:flex}
 body.has-sel #sb-status{display:none}
 .sel-fab.bump{animation:selBump .35s ease}
 @keyframes selBump{40%{transform:scale(1.08)}}
-/* Foglio selezione */
 .sel-overlay{display:none;position:fixed;inset:0;z-index:210;background:rgba(26,22,18,.42);align-items:center;justify-content:center;padding:20px}
 .sel-overlay.show{display:flex}
-.sel-card{background:var(--bg);width:100%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:0 16px 48px rgba(26,22,18,.25)}
+.sel-card{background:var(--bg);width:100%;max-width:480px;max-height:88vh;overflow-y:auto;border-radius:18px;box-shadow:0 16px 48px rgba(26,22,18,.25)}
 .sel-hdr{display:flex;justify-content:space-between;align-items:center;padding:18px 22px 12px;border-bottom:1px solid var(--line)}
-.sel-hdr span{font-family:var(--font-sans);font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
-.sel-x{font-size:22px;line-height:1;color:var(--ink-3);padding:4px 6px}
+.sel-hdr span{font-family:var(--font-sans);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.sel-x{width:32px;height:32px;border-radius:50%;font-size:20px;line-height:1;color:var(--ink-3);display:flex;align-items:center;justify-content:center}
+.sel-x:hover{background:var(--bg-alt)}
 .sel-list{list-style:none;padding:4px 22px}
 .sel-it{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .sel-it-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -718,15 +661,15 @@ body.has-sel #sb-status{display:none}
 .sel-it-nome{font-family:var(--font-serif);font-size:16px;color:var(--ink);line-height:1.3}
 .sel-it-nome em{font-family:var(--font-sans);font-style:normal;font-size:12px;color:var(--ink-3)}
 .sel-it-p{font-size:15px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
-.sel-rm{font-size:20px;color:var(--ink-4);width:32px;height:32px}
-.sel-tot{display:flex;justify-content:space-between;padding:14px 22px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.sel-rm{width:32px;height:32px;border-radius:50%;font-size:20px;color:var(--ink-4);display:flex;align-items:center;justify-content:center}
+.sel-rm:hover{background:var(--bg-alt)}
+.sel-tot{display:flex;justify-content:space-between;padding:14px 22px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .sel-tot span:last-child{font-size:15px;font-weight:500;color:var(--ink);text-transform:none;letter-spacing:0}
 .sel-acts{display:flex;gap:10px;padding:0 22px 22px}
-.sel-go{flex:1;height:48px;background:var(--ink);color:var(--bg);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase}
-.sel-clear{height:48px;padding:0 16px;border:1px solid var(--line-s);color:var(--ink-3);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
-/* Modalità "mostra al personale": leggibile a un metro di distanza */
+.sel-go{flex:1;height:46px;background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.sel-clear{height:46px}
 .sel-overlay.sel-show{padding:0;background:var(--hero2)}
-.sel-show .sel-card{max-width:none;max-height:none;height:100%;background:linear-gradient(175deg,#304d65 0%,#1e3347 60%,#162840 100%);color:#fff;box-shadow:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.sel-show .sel-card{max-width:none;max-height:none;height:100%;border-radius:0;background:linear-gradient(175deg,#304d65 0%,#1e3347 60%,#162840 100%);color:#fff;box-shadow:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 .sel-show .sel-hdr{border-color:rgba(255,255,255,.15);padding:22px 24px 16px}
 .sel-show .sel-hdr span,.sel-show .sel-x{color:rgba(255,255,255,.7)}
 .sel-show .sel-list{padding:8px 24px;max-width:720px;margin:0 auto}
@@ -735,31 +678,60 @@ body.has-sel #sb-status{display:none}
 .sel-show .sel-it-nome{color:#fff;font-size:26px}
 .sel-show .sel-it-nome em{color:rgba(255,255,255,.75);font-size:18px}
 .sel-show .sel-it-p{color:#fff;font-size:22px}
-@media(max-width:1023px){
-  body:not(.mobile-list-view) .sel-fab{display:none!important}
-  body.has-sel.mobile-list-view .filter-fab{left:16px;transform:none}
-  #wine-list .sezione-titolo{font-size:26px;padding:22px 14px 8px}
-  .chipnav{padding:8px 14px}
-  .main-content>.results-bar{padding:8px 14px 0}
-  .grp-l1{padding:16px 14px 7px}
-  .grp-l2{padding:16px 14px 0;font-size:16px}
-  .prod{padding:0 10px 0 16px;margin-left:0}
-  .ref{padding:9px 0}
-  .ref-nome{font-size:15.5px}
-  .sel-btn{width:36px;height:36px}
-  .sel-overlay{padding:0;align-items:flex-end}
-  .sel-card{max-width:100%;max-height:90vh}
-  .sel-show .sel-card{max-height:none}
-}
+
+/* Filtri (sidebar desktop + drawer mobile) */
+.btn-reset-all{width:auto;margin:12px 20px 4px;background:transparent;border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.6);font-size:10px}
+.btn-reset-all:hover{border-color:rgba(255,255,255,.5);color:#fff}
+#filter-drawer .btn-reset-all{margin:14px 0 0;border-color:var(--line-s);color:var(--ink-3)}
+.drawer-apply button{width:100%;height:46px;background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.drawer-fresco{width:100%;height:42px;margin:4px 0 14px}
+
 @media(min-width:1024px){
   /* Il padding del contenitore di scroll sposterebbe l'aggancio sticky: si usa il margine */
   .wine-col{padding-top:0}
-  .wine-col .page-wrap{margin-top:40px}
-  .sel-fab{left:18px;right:auto;width:264px;justify-content:space-between;border-radius:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);box-shadow:none}
-  .sel-fab:hover{background:rgba(255,255,255,.2)}
+  .wine-col .page-wrap{margin-top:40px;border-radius:18px 18px 0 0}
   .chipnav{margin:0 -52px;padding:12px 52px}
-  #wine-list .sezione-titolo,.grp-l1,.grp-l2{padding-left:0;padding-right:0}
-  .prod{padding-right:0}
+  /* Viste: stesse pillole, versione su fondo scuro */
+  .nav-views{gap:10px;padding:4px 22px 20px}
+  .btn-view{
+    border-radius:999px;padding:0 22px;height:48px;justify-content:center;gap:2px;
+    font-size:10px;letter-spacing:.14em;border-color:rgba(255,255,255,.18);color:rgba(255,255,255,.6);
+  }
+  .btn-view-sub{display:none}
+  .btn-view.active{background:#fff;border-color:#fff;color:var(--hero2)}
+  .btn-view:hover:not(.active){background:rgba(255,255,255,.08);color:#fff}
+  .sel-fab{left:22px;right:auto;width:256px;justify-content:space-between;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);box-shadow:none}
+  .sel-fab:hover{background:rgba(255,255,255,.2)}
+}
+@media(max-width:1023px){
+  .main-content{padding:12px 14px 110px}
+  .search-bar-wrap{margin-bottom:10px}
+  .chipnav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0 -14px;padding:8px 14px}
+  .chipnav::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto}
+  .tools{padding:2px 0 12px}
+  .results-count{display:none}
+  #sb-status{display:none}
+  .tools{flex-wrap:nowrap}
+  #wine-list .sezione-titolo{font-size:27px;padding:24px 0 8px}
+  .grp-l1{padding:16px 0 7px}
+  .grp-l2{padding:16px 0 0;font-size:17px}
+  .prod{padding-left:14px}
+  .ref{gap:10px}
+  .ref-price{width:auto;min-width:64px}
+  .ref-nome{font-size:15.5px}
+  .sel-btn{width:36px;height:36px}
+  body:not(.mobile-list-view) .sel-fab{display:none!important}
+  body:not(.view-cantina) .filter-fab{display:none!important}
+  body.has-sel.mobile-list-view .filter-fab{left:16px;transform:none}
+  .sel-overlay{padding:0;align-items:flex-end}
+  .sel-card{max-width:100%;max-height:90vh;border-radius:18px 18px 0 0}
+  .sel-show .sel-card{max-height:none;border-radius:0}
+  .modal-card{border-radius:18px 18px 0 0}
+  /* Landing: stesse pillole */
+  .mobile-nav-btns{gap:12px}
+  .mobile-nav-btn,.mobile-nav-btn:first-child{border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:14px 24px}
+  .mobile-nav-btn:active{background:rgba(255,255,255,.1)}
 }
 </style>
 </head>
@@ -845,18 +817,19 @@ body.has-sel #sb-status{display:none}
   <div class="page-wrap">
     <div style="flex:1;min-width:0;display:flex;flex-direction:column">
 
-      <!-- Search bar: visibile solo cantina -->
-      <div class="search-bar-wrap" id="search-bar-wrap">
-        <div class="search-bar-inner">
-          <input class="search-input" id="search-input" type="text" spellcheck="false"
-            placeholder="Cerca vino, produttore, vitigno…" oninput="onSearch(this)">
-          <button class="search-clear" id="search-clear" onclick="clearSearch()">×</button>
-        </div>
-      </div>
-
-      <div class="sort-bar" id="sort-bar-wrap"></div>
       <div class="main-content">
-        <div class="results-bar"><span class="results-count" id="results-count">—</span></div>
+        <div class="search-bar-wrap" id="search-bar-wrap">
+          <div class="search-bar-inner">
+            <input class="search-input pill" id="search-input" type="search" spellcheck="false" autocomplete="off"
+              placeholder="Cerca vino, produttore, vitigno…" oninput="onSearch(this)">
+            <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Cancella ricerca">×</button>
+          </div>
+        </div>
+        <nav class="chipnav" id="chipnav" aria-label="Tipologie"></nav>
+        <div class="tools">
+          <div class="sort-bar" id="sort-bar-wrap"></div>
+          <span class="results-count" id="results-count">—</span>
+        </div>
         <div id="wine-list" spellcheck="false"><div class="vuoto">Caricamento in corso…</div></div>
       </div>
     </div>
@@ -899,6 +872,6 @@ body.has-sel #sb-status{display:none}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="carta.js"></script>
+<script src="carta.js?v=20260925c"></script>
 </body>
 </html>

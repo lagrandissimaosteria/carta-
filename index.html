@@ -740,7 +740,7 @@ body.has-sel #sb-status{display:none}
 /* ════════════════════════════════════════════════════════════════
    SFONDO CANTINA — foto + lista satinata
    ════════════════════════════════════════════════════════════════ */
-:root{--paper:rgba(249,246,240,.8);--paper-bar:rgba(249,246,240,.88)}
+:root{--paper:rgba(249,246,240,.66);--paper-bar:rgba(249,246,240,.84);--nation:rgba(224,206,180,.95)}
 .chipnav,.grp-l1{background:var(--paper-bar);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 @media(min-width:1024px){
   .wine-col{background:#2a2622 url(cantina.webp) center 30%/cover no-repeat}
@@ -755,7 +755,7 @@ body.has-sel #sb-status{display:none}
   /* Mobile: foto pre-sfocata (nessun backdrop-filter sulla lista lunga = scroll fluido) */
   body::before{
     content:"";position:fixed;top:0;left:0;right:0;height:140vh;z-index:-1;pointer-events:none;
-    background:linear-gradient(rgba(249,246,240,.74),rgba(249,246,240,.74)),url(cantina-blur.webp) center top/cover no-repeat;
+    background:linear-gradient(rgba(249,246,240,.6),rgba(249,246,240,.6)),url(cantina-blur.webp) center top/cover no-repeat;
   }
   .mobile-landing{
     background:
@@ -763,9 +763,22 @@ body.has-sel #sb-status{display:none}
       #1e3347 url(cantina.webp) center/cover no-repeat;
   }
 }
+/* Nazioni: fascia sabbia a contrasto, testo più grande delle regioni */
+.grp-l1{
+  background:var(--nation);color:var(--ink);
+  font-size:15px;font-weight:500;letter-spacing:.2em;
+  margin:18px -52px 0;padding:12px 52px 10px;
+  border-top:1px solid rgba(26,22,18,.06);border-bottom:1px solid rgba(26,22,18,.1);
+}
+.grp-l2{font-size:17px}
+@media(max-width:1023px){
+  .grp-l1{font-size:14px;letter-spacing:.18em;margin:14px -14px 0;padding:11px 14px 9px}
+  .grp-l2{font-size:16px}
+}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .wine-col .page-wrap{background:rgba(249,246,240,.94)}
-  .chipnav,.grp-l1{background:var(--bg)}
+  .chipnav{background:var(--bg)}
+  .grp-l1{background:#E0CEB4}
 }
 </style>
 </head>

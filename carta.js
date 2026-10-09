@@ -8,6 +8,7 @@ var _CFG=(function(){
     sbKey:      "sb_publishable_FnsZcIMLdfbaABqmwx3I2A_rXfRmHhY",
     dbUser:     "default",
     mescitaMax: 45,                    // tetto € vista "Carta Breve"
+    novitaGiorni: 14,                  // giorni di "Novità" dal primo carico
     paeseOrder: ["Italia","Francia"]   // paesi in testa, il resto alfabetico
   };
   var O=(typeof window!=="undefined"&&window.CARTA_CONFIG&&typeof window.CARTA_CONFIG==="object"&&!Array.isArray(window.CARTA_CONFIG))?window.CARTA_CONFIG:{};
@@ -119,6 +120,24 @@ var _overlayCount=0;
 function _lockScroll(){ _overlayCount++; document.body.style.overflow="hidden"; }
 function _unlockScroll(){ _overlayCount=Math.max(0,_overlayCount-1); if(_overlayCount===0) document.body.style.overflow=""; }
 function esc(s){ var d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; }
+// ── NOVITÀ ───────────────────────────────────────────────────────────────────
+// Data del primo carico mai registrato (lotto più vecchio). I vini con giacenza
+// iniziale (_giacSeed) esistevano prima dei lotti: mai "Novità". Verificato al
+// render, quindi il bollino scade da solo senza job né scritture su DB.
+var NOVITA_GG=parseInt(_CFG.novitaGiorni,10)||14;
+function _firstIn(w){
+  if((parseFloat(w._giacSeed)||0)>0||!Array.isArray(w.lots)) return "";
+  var m="";
+  w.lots.forEach(function(l){ var d=l&&typeof l.data==="string"?l.data.slice(0,10):""; if(/^\d{4}-\d{2}-\d{2}$/.test(d)&&(!m||d<m)) m=d; });
+  return m;
+}
+function _isNovita(w){
+  if(!w||!w._in) return false;
+  var t=new Date(), oggi=Date.UTC(t.getFullYear(),t.getMonth(),t.getDate());
+  var g=Math.round((oggi-Date.parse(w._in+"T00:00:00Z"))/864e5);
+  return g>=0&&g<NOVITA_GG;
+}
+function _novita(w){ return _isNovita(w)?"<span class='w-novita'>Novità</span>":""; }
 function _fresco(w){ return w&&w.inFresco?"<span class='w-fresco' title='Servito in fresco' aria-label='in fresco'>\u2744\uFE0E</span>":""; }
 function _ensureFrescoCSS(){
   if(document.getElementById("fresco-css")) return;
@@ -128,7 +147,9 @@ function _ensureFrescoCSS(){
     +"@media(max-width:640px){.w-fresco{font-size:1.55em;margin-left:6px}}"
     +"@media(prefers-reduced-motion:reduce){.w-fresco{animation:none;opacity:1;transform:none;text-shadow:0 0 3px rgba(130,222,255,.9),0 0 8px rgba(40,170,235,.6),0 0 15px rgba(40,170,235,.35)}}"
     +".fresco-legenda{font-family:inherit;font-size:11px;letter-spacing:.05em;color:#8C7E72;text-align:center;padding:26px 12px 10px;border-top:1px solid rgba(26,22,18,.07);margin-top:14px}"
-    +".fresco-legenda .w-fresco{font-size:1em;margin:0 6px 0 0}";
+    +".fresco-legenda .w-fresco{font-size:1em;margin:0 6px 0 0}"
+    +".w-novita{display:inline-block;margin-left:8px;padding:2px 7px 1px;border:1px solid #A8914F;border-radius:999px;font-family:var(--font-sans,sans-serif);font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;line-height:1.4;color:#7E6A2E;vertical-align:middle;white-space:nowrap}"
+    +".modal-novita{margin-left:0;vertical-align:baseline;color:#D9C27E;border-color:#D9C27E}";
   document.head.appendChild(st);
 }
 function _setStatus(state){
@@ -289,6 +310,7 @@ async function loadWines(){
     d[cat].push({
       id:w.id, n:nome, produttore:prod, annata:w.annata||"",
       inFresco:!!w.inFresco,
+      _in:_firstIn(w),
       p:pNum>0?"€ "+_fmtP(pNum):"",
       b:pCalice>0?"€ "+_fmtP(pCalice):"",
       prezzo_carta:pNum,
@@ -590,7 +612,7 @@ function _renderSel(show){
     if(w._p) tot+=w._p; else na++;
     return "<li class=\"sel-it\"><div class=\"sel-it-main\">"
       +"<span class=\"sel-it-prod\">"+esc(w.produttore)+"</span>"
-      +"<span class=\"sel-it-nome\">"+esc(w.n)+(w.annata?" <em>"+esc(w.annata)+"</em>":"")+(w.formato?" <em>"+esc(_fmtNome(w.formato))+"</em>":"")+"</span>"
+      +"<span class=\"sel-it-nome\">"+esc(w.n)+(w.annata?" <em>"+esc(w.annata)+"</em>":"")+_novita(w)+(w.formato?" <em>"+esc(_fmtNome(w.formato))+"</em>":"")+"</span>"
       +"</div><span class=\"sel-it-p\">"+(w.p?esc(w.p):"su richiesta")+"</span>"
       +(show?"":"<button type=\"button\" class=\"sel-rm\" data-sel=\""+esc(String(w.id))+"\" aria-label=\"Togli\">×</button>")
       +"</li>";
@@ -663,7 +685,7 @@ function _buildRefRow(w,zona,mode){
   if(zona)      meta.push(esc(zona));
   return "<div class='ref' data-id='"+id+"'>"
     +"<div class='ref-main'>"
-    +  "<div class='ref-nome'>"+esc(w.n)+(w.annata?" <span class='w-annata'>"+esc(w.annata)+"</span>":"")+_fresco(w)
+    +  "<div class='ref-nome'>"+esc(w.n)+(w.annata?" <span class='w-annata'>"+esc(w.annata)+"</span>":"")+_fresco(w)+_novita(w)
     +    (w.formato?" <span class='w-formato'>"+esc(_fmtNome(w.formato))+"</span>":"")+"</div>"
     +  (meta.length?"<div class='ref-meta'>"+meta.join("<span class='w-sep'> · </span>")+"</div>":"")
     +"</div>"
@@ -962,7 +984,7 @@ function openModal(id){
   var noteEl=document.getElementById("modal-note-wrap");
   if(catEl) catEl.textContent=CAT_LABELS[cat]||cat;
   if(nomeEl) nomeEl.textContent=w.n;
-  if(annataEl) annataEl.textContent=w.annata?"Annata "+w.annata:"";
+  if(annataEl) annataEl.innerHTML=(w.annata?"Annata "+esc(w.annata):"")+(_isNovita(w)?(w.annata?" ":"")+"<span class='w-novita modal-novita'>Novità</span>":"");
   var p="";
   if(w.p) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Bottiglia</div><div class=\"modal-p-val\">"+esc(w.p)+"</div></div>";
   if(w.b) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Al calice</div><div class=\"modal-p-val\">"+esc(w.b)+"</div></div>";

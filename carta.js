@@ -31,18 +31,18 @@ const CAT_LABELS = {
   Naturale:"Naturali", Dolce:"Dolci", Passito:"Passiti", Liquoroso:"Liquorosi",
   Macerato:"Macerati", Altro:"Altro", AltriFormati:"Altri Formati"
 };
-const CAT_COLORS = {   // tarati per fondo scuro
-  Spumante:  "#A9C3D3",
-  Bianco:    "#DCC77F",
-  Macerato:  "#D09A5E",
-  Rosato:    "#E3A0A4",
-  Rosso:     "#C9575F",
-  Naturale:  "#93BC8B",
-  Dolce:     "#BE9BC4",
-  Passito:   "#CF8466",
-  Liquoroso: "#D99A52",
-  AltriFormati:"#93A9BE",
-  Altro:     "#A8A196"
+const CAT_COLORS = {
+  Spumante:  "#8EA8B8",  // grigio-azzurro polvere
+  Bianco:    "#B5A060",  // oro antico
+  Macerato:  "#9C7A50",  // cuoio
+  Rosato:    "#B87878",  // cipria scura
+  Rosso:     "#7A3030",  // borgogna spento
+  Naturale:  "#5C7A58",  // verde oliva
+  Dolce:     "#8A6A8A",  // malva cenere
+  Passito:   "#8A4A40",  // terracotta
+  Liquoroso: "#9A6030",  // ambra scura
+  AltriFormati:"#607080",// acciaio blu
+  Altro:     "#787068"   // grigio caldo neutro
 };
 
 // ── STATO GLOBALE ─────────────────────────────────────────────────────────────
@@ -142,11 +142,14 @@ function _fresco(w){ return w&&w.inFresco?"<span class='w-fresco' title='Servito
 function _ensureFrescoCSS(){
   if(document.getElementById("fresco-css")) return;
   var st=document.createElement("style"); st.id="fresco-css";
-  st.textContent=".w-fresco{display:inline-block;margin-left:7px;font-size:1.05em;line-height:1;vertical-align:baseline;color:#9CCBEA}"
-    +".fresco-legenda{font-size:12px;letter-spacing:.08em;color:var(--ink-3,#A39C8F);text-align:center;padding:28px 12px 10px;border-top:1px solid var(--line,rgba(236,229,216,.09));margin-top:16px}"
-    +".fresco-legenda .w-fresco{margin:0 6px 0 0}"
-    +".w-novita{display:inline-block;margin-left:8px;padding:3px 8px 2px;border:1px solid var(--sand,#E2C98F);border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.3;color:var(--sand,#E2C98F);vertical-align:2px;white-space:nowrap}"
-    +".modal-novita{margin-left:0;vertical-align:baseline}";
+  st.textContent=".w-fresco{display:inline-block;margin-left:7px;font-size:1.35em;line-height:1;vertical-align:middle;color:#0f9fe0;text-shadow:0 0 3px rgba(130,222,255,.95),0 0 7px rgba(40,170,235,.7),0 0 14px rgba(40,170,235,.4),0 0 22px rgba(40,170,235,.2);animation:frescoNeon 2.4s ease-in-out infinite}"
+    +"@keyframes frescoNeon{0%,100%{opacity:.92;transform:scale(1);text-shadow:0 0 3px rgba(130,222,255,.8),0 0 6px rgba(40,170,235,.5),0 0 11px rgba(40,170,235,.28)}50%{opacity:1;transform:scale(1.14);text-shadow:0 0 3px rgba(170,235,255,1),0 0 8px rgba(40,170,235,.85),0 0 16px rgba(40,170,235,.55),0 0 26px rgba(40,170,235,.3)}}"
+    +"@media(max-width:640px){.w-fresco{font-size:1.55em;margin-left:6px}}"
+    +"@media(prefers-reduced-motion:reduce){.w-fresco{animation:none;opacity:1;transform:none;text-shadow:0 0 3px rgba(130,222,255,.9),0 0 8px rgba(40,170,235,.6),0 0 15px rgba(40,170,235,.35)}}"
+    +".fresco-legenda{font-family:inherit;font-size:11px;letter-spacing:.05em;color:#8C7E72;text-align:center;padding:26px 12px 10px;border-top:1px solid rgba(26,22,18,.07);margin-top:14px}"
+    +".fresco-legenda .w-fresco{font-size:1em;margin:0 6px 0 0}"
+    +".w-novita{display:inline-block;margin-left:8px;padding:2px 7px 1px;border:1px solid #A8914F;border-radius:999px;font-family:var(--font-sans,sans-serif);font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;line-height:1.4;color:#7E6A2E;vertical-align:middle;white-space:nowrap}"
+    +".modal-novita{margin-left:0;vertical-align:baseline;color:#D9C27E;border-color:#D9C27E}";
   document.head.appendChild(st);
 }
 function _setStatus(state){

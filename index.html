@@ -18,7 +18,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" as="image" href="cantina-blur.webp" media="(max-width:1023px)">
 <link rel="preload" as="image" href="cantina.webp">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="fonts.css">
 <style>
 :root{
   /* Sidebar */
@@ -805,6 +805,10 @@ body.has-sel #sb-status{display:none}
   .chipnav{background:var(--bg)}
   .grp-l1{background:#E0CEB4}
 }
+.legal-note{margin-top:40px;padding:22px 0 72px;border-top:1px solid var(--line);font-size:11px;line-height:1.7;color:var(--ink-3)}
+.legal-note p+p{margin-top:6px}
+.legal-note a{text-decoration:underline;text-underline-offset:2px}
+.legal-note .legal-id{color:var(--ink-4)}
 </style>
 </head>
 <body>
@@ -903,6 +907,11 @@ body.has-sel #sb-status{display:none}
           <span class="results-count" id="results-count">—</span>
         </div>
         <div id="wine-list" spellcheck="false"><div class="vuoto">Caricamento in corso…</div></div>
+        <footer class="legal-note">
+          <p>Prezzi in euro, IVA inclusa. Tutti i vini contengono solfiti; alcuni possono essere chiarificati con derivati di uova o latte. Per informazioni sugli allergeni rivolgiti al personale.</p>
+          <p>Vietata la somministrazione di bevande alcoliche ai minori di 18 anni.</p>
+          <p class="legal-id">Balance F and B S.r.l. · Via Ponte Nuovo 25, 20128 Milano · P.IVA 12257410964 · <a href="privacy.html">Privacy</a></p>
+        </footer>
       </div>
     </div>
   </div>
@@ -943,7 +952,7 @@ body.has-sel #sb-status{display:none}
   <span id="sb-dot"></span><span id="sb-lbl">DB</span>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="vendor/supabase.js?v=2.117.3"></script>
 <script src="carta.js?v=20261010s"></script>
 </body>
 </html>

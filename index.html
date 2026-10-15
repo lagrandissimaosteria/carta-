@@ -786,6 +786,10 @@ body.has-sel #sb-status{display:none}
 @media(max-width:1023px){
   .grp-l1{font-size:14px;letter-spacing:.18em;margin:14px -14px 0;padding:11px 14px 9px}
   .grp-l2{font-size:16px}
+  /* iOS: decine di header sticky con backdrop-filter saturano la GPU durante lo scroll → crash. Solo fondi pieni. */
+  .chipnav,.grp-l1{-webkit-backdrop-filter:none;backdrop-filter:none}
+  .chipnav{background:#F6F2EA}
+  .grp-l1{background:#E0CEB4}
 }
 /* Mobile: tipologie in griglia a 3 colonne, niente scroll orizzontale */
 @media(max-width:1023px){

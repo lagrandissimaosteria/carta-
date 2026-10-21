@@ -89,7 +89,7 @@ button{cursor:pointer;border:0;background:none}
 .main-content{padding:0 var(--gut) 120px}
 
 /* Ricerca */
-.search-bar-wrap{display:none;padding:20px 0 4px}
+.search-bar-wrap{display:none;position:sticky;top:var(--stick-top,0px);z-index:31;margin:0 calc(-1*var(--gut));padding:16px var(--gut) 4px;background:var(--notte)}
 .search-bar-wrap.visible{display:block}
 .search-bar-inner{position:relative}
 .search-input.pill{
@@ -108,7 +108,7 @@ button{cursor:pointer;border:0;background:none}
 
 /* Indice tipologie (sticky) */
 .chipnav{
-  position:sticky;top:var(--stick-top,0px);z-index:30;
+  position:sticky;top:calc(var(--stick-top,0px) + var(--search-h,0px));z-index:30;
   display:flex;flex-wrap:wrap;gap:8px;
   margin:0 calc(-1*var(--gut));padding:16px var(--gut) 12px;
   background:var(--notte);
@@ -133,7 +133,7 @@ button{cursor:pointer;border:0;background:none}
 .results-count{font-size:12px;color:var(--carta-3);white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* Gerarchia: tipologia → paese → regione → produttore → referenze */
-#wine-list .sezione{padding-top:8px;scroll-margin-top:calc(var(--stick-top,0px) + var(--nav-h,0px) - 8px)}
+#wine-list .sezione{padding-top:8px;scroll-margin-top:calc(var(--stick-top,0px) + var(--search-h,0px) + var(--nav-h,0px) - 8px)}
 #wine-list .sezione+.sezione{margin-top:40px}
 #wine-list .sezione-titolo{
   display:flex;align-items:baseline;justify-content:space-between;gap:16px;
@@ -144,7 +144,7 @@ button{cursor:pointer;border:0;background:none}
 .sez-n::after{content:" etichette"}
 
 .grp-l1{
-  position:sticky;top:calc(var(--stick-top,0px) + var(--nav-h,0px));z-index:20;
+  position:sticky;top:calc(var(--stick-top,0px) + var(--search-h,0px) + var(--nav-h,0px));z-index:20;
   padding:11px 0 10px;
   background:var(--notte);border-top:1px solid var(--filo-2);border-bottom:1px solid var(--filo);
   font-size:11.5px;font-weight:650;font-stretch:125%;letter-spacing:.16em;text-transform:uppercase;color:var(--carta-2);
@@ -376,7 +376,7 @@ body.has-sel .sel-fab{display:flex}
 
   .wine-col{flex:1;min-width:0;height:100vh;overflow-y:auto;background:var(--notte)}
   .page-wrap{max-width:calc(760px + 2*var(--gut));margin:0 auto}
-  .search-bar-wrap{padding-top:36px}
+  .search-bar-wrap{padding-top:28px}
   .chipnav{padding-top:20px}
   body:not(.view-cantina) .chipnav{padding-top:36px}
   #wine-list .sezione-titolo{font-size:48px}
@@ -436,6 +436,9 @@ body.has-sel .sel-fab{display:flex}
   body.mobile-list-view.view-cantina .filter-fab{display:inline-flex}
   body:not(.mobile-list-view) .sel-fab{display:none!important}
 
+  /* Cantina: resta fissa la ricerca; le tipologie scorrono via per lasciare spazio ai vini */
+  body.view-cantina .chipnav{position:static}
+  .search-bar-wrap{padding-top:12px;padding-bottom:8px}
   /* Tipologie in griglia: tutte visibili, niente scorrimento orizzontale */
   .chipnav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:12px var(--gut) 10px}
   .chip{height:34px;padding:0 6px;gap:5px;font-size:13px;font-stretch:85%;min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -566,6 +569,6 @@ body.has-sel .sel-fab{display:flex}
 <button class="filter-fab" id="filter-fab" onclick="openDrawer()">Filtri <span class="fab-badge" id="fab-badge">0</span></button>
 
 <script src="vendor/supabase.js?v=2.117.3"></script>
-<script src="carta.js?v=20261021b"></script>
+<script src="carta.js?v=20261021c"></script>
 </body>
 </html>

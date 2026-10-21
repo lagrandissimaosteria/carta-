@@ -531,17 +531,22 @@ function applyFilters(){
 // L'offset dipende dalle barre sticky reali (mobile: indietro+ricerca+ordina,
 // desktop: nessuna), quindi si misura invece di cablarlo nel CSS.
 function _layoutSticky(){
-  // Unica barra fissa sopra la lista: il pulsante "Indietro" su mobile.
+  // Barre fisse sopra la lista: "Indietro" (mobile), ricerca (cantina), tipologie (se sticky).
   var root=document.documentElement, back=document.getElementById("btn-back-mobile");
   var top=(back&&getComputedStyle(back).position==="fixed"&&back.offsetHeight)?back.offsetHeight:0;
+  var sb=document.getElementById("search-bar-wrap");
+  var sh=(sb&&sb.classList.contains("visible"))?sb.offsetHeight:0;
   var nav=document.getElementById("chipnav");
+  var nh=(nav&&getComputedStyle(nav).position==="sticky")?nav.offsetHeight:0;
   root.style.setProperty("--stick-top",top+"px");
-  root.style.setProperty("--nav-h",(nav?nav.offsetHeight:0)+"px");
+  root.style.setProperty("--search-h",sh+"px");
+  root.style.setProperty("--nav-h",nh+"px");
 }
 var _spyRaf=0,_spyCur=null;
 function _spy(){
   var nav=document.getElementById("chipnav"); if(!nav||!nav.firstChild) return;
-  var lim=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--stick-top"))||0)+nav.offsetHeight+16;
+  var cs=getComputedStyle(document.documentElement);
+  var lim=["--stick-top","--search-h","--nav-h"].reduce(function(t,v){ return t+(parseFloat(cs.getPropertyValue(v))||0); },0)+16;
   var secs=document.querySelectorAll("#wine-list .sezione"),cur=secs[0];
   for(var i=0;i<secs.length;i++){ if(secs[i].getBoundingClientRect().top<=lim) cur=secs[i]; else break; }
   if(!cur) return;
@@ -893,7 +898,16 @@ function onRangeMinEnd(v){ onRangeMin(v); buildSidebar(); }
 function onRangeMaxEnd(v){ onRangeMax(v); buildSidebar(); }
 function _updateRangeFill(){ var fill=document.getElementById("range-fill"); if(!fill)return; var p1=pMin/pMaxG*100,p2=pMax/pMaxG*100; fill.style.left=p1+"%"; fill.style.width=(p2-p1)+"%"; }
 var _searchDebounce=null;
-function onSearch(inp){ fSearch=inp.value; var cl=document.getElementById("search-clear"); if(cl) cl.classList.toggle("show",!!fSearch); clearTimeout(_searchDebounce); _searchDebounce=setTimeout(applyFilters,150); }
+function onSearch(inp){ fSearch=inp.value; var cl=document.getElementById("search-clear"); if(cl) cl.classList.toggle("show",!!fSearch); clearTimeout(_searchDebounce); _searchDebounce=setTimeout(function(){ applyFilters(); _toListTop(); },150); }
+// Dopo una ricerca fatta a metà lista, riporta i risultati subito sotto la barra.
+function _toListTop(){
+  var wl=document.getElementById("wine-list"); if(!wl) return;
+  var cs=getComputedStyle(document.documentElement);
+  var lim=["--stick-top","--search-h","--nav-h"].reduce(function(t,v){ return t+(parseFloat(cs.getPropertyValue(v))||0); },0);
+  var d=wl.getBoundingClientRect().top-lim; if(d>=0) return;
+  var wc=document.querySelector(".wine-col");
+  if(wc&&wc.scrollHeight>wc.clientHeight&&getComputedStyle(wc).overflowY!=="visible") wc.scrollTop+=d; else window.scrollBy(0,d);
+}
 function clearSearch(){ fSearch=""; var inp=document.getElementById("search-input"); if(inp) inp.value=""; var cl=document.getElementById("search-clear"); if(cl) cl.classList.remove("show"); applyFilters(); }
 function resetAll(){
   fCat="tutti"; fSearch=""; pMin=0; pMax=pMaxG; fFresco=false;

@@ -23,13 +23,13 @@ const DB_USER = _CFG.dbUser;
 
 var _useRestFallback = SB_KEY.startsWith("sb_publishable_") || SB_KEY.startsWith("sb_");
 
-const CAT_ORDER = ["Spumante","Bianco","Macerato","Rosato","Rosso","Naturale","Dolce","Passito","Liquoroso","Altro","AltriFormati"];
+const CAT_ORDER = ["Spumante","Bianco","Macerato","Rosato","Rosso","Naturale","Dolce","Passito","Liquoroso","Vermouth","Altro","AltriFormati"];
 // Ordine enologico interno ai "Altri Formati" (esclude la categoria contenitore).
 const CAT_ORDER_ENO = CAT_ORDER.filter(function(c){ return c!=="AltriFormati"; });
 const CAT_LABELS = {
   Rosso:"Rossi", Bianco:"Bianchi", Rosato:"Rosati", Spumante:"Bolle",
   Naturale:"Naturali", Dolce:"Dolci", Passito:"Passiti", Liquoroso:"Liquorosi",
-  Macerato:"Macerati", Altro:"Altro", AltriFormati:"Altri Formati"
+  Macerato:"Macerati", Vermouth:"Vermouth e amari", Altro:"Altro", AltriFormati:"Altri Formati"
 };
 const CAT_COLORS = {
   Spumante:  "#8EA8B8",  // grigio-azzurro polvere
@@ -41,6 +41,7 @@ const CAT_COLORS = {
   Dolce:     "#8A6A8A",  // malva cenere
   Passito:   "#8A4A40",  // terracotta
   Liquoroso: "#9A6030",  // ambra scura
+  Vermouth:  "#7A5A48",  // china
   AltriFormati:"#607080",// acciaio blu
   Altro:     "#787068"   // grigio caldo neutro
 };
@@ -138,20 +139,9 @@ function _isNovita(w){
   return g>=0&&g<NOVITA_GG;
 }
 function _novita(w){ return _isNovita(w)?"<span class='w-novita'>Novità</span>":""; }
-function _fresco(w){ return w&&w.inFresco?"<span class='w-fresco' title='Servito in fresco' aria-label='in fresco'>\u2744\uFE0E</span>":""; }
-function _ensureFrescoCSS(){
-  if(document.getElementById("fresco-css")) return;
-  var st=document.createElement("style"); st.id="fresco-css";
-  st.textContent=".w-fresco{display:inline-block;margin-left:7px;font-size:1.35em;line-height:1;vertical-align:middle;color:#0f9fe0;text-shadow:0 0 3px rgba(130,222,255,.95),0 0 7px rgba(40,170,235,.7),0 0 14px rgba(40,170,235,.4),0 0 22px rgba(40,170,235,.2);animation:frescoNeon 2.4s ease-in-out infinite}"
-    +"@keyframes frescoNeon{0%,100%{opacity:.92;transform:scale(1);text-shadow:0 0 3px rgba(130,222,255,.8),0 0 6px rgba(40,170,235,.5),0 0 11px rgba(40,170,235,.28)}50%{opacity:1;transform:scale(1.14);text-shadow:0 0 3px rgba(170,235,255,1),0 0 8px rgba(40,170,235,.85),0 0 16px rgba(40,170,235,.55),0 0 26px rgba(40,170,235,.3)}}"
-    +"@media(max-width:640px){.w-fresco{font-size:1.55em;margin-left:6px}}"
-    +"@media(prefers-reduced-motion:reduce){.w-fresco{animation:none;opacity:1;transform:none;text-shadow:0 0 3px rgba(130,222,255,.9),0 0 8px rgba(40,170,235,.6),0 0 15px rgba(40,170,235,.35)}}"
-    +".fresco-legenda{font-family:inherit;font-size:11px;letter-spacing:.05em;color:#8C7E72;text-align:center;padding:26px 12px 10px;border-top:1px solid rgba(26,22,18,.07);margin-top:14px}"
-    +".fresco-legenda .w-fresco{font-size:1em;margin:0 6px 0 0}"
-    +".w-novita{display:inline-block;margin-left:8px;padding:2px 7px 1px;border:1px solid #A8914F;border-radius:999px;font-family:var(--font-sans,sans-serif);font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;line-height:1.4;color:#7E6A2E;vertical-align:middle;white-space:nowrap}"
-    +".modal-novita{margin-left:0;vertical-align:baseline;color:#D9C27E;border-color:#D9C27E}";
-  document.head.appendChild(st);
-}
+// Icona "in fresco": disegnata, così ha lo stesso tratto del carattere.
+var ICE="<svg viewBox='0 0 16 16' aria-hidden='true' fill='none' stroke='currentColor' stroke-width='1.4' stroke-linecap='round'><path d='M8 1.5v13M2.4 4.75l11.2 6.5M2.4 11.25l11.2-6.5M6.2 2.6 8 4.2l1.8-1.6M6.2 13.4 8 11.8l1.8 1.6'/></svg>";
+function _fresco(w){ return w&&w.inFresco?"<span class='w-fresco' title='Servito in fresco' aria-label='in fresco'>"+ICE+"</span>":""; }
 function _setStatus(state){
   var dot=document.getElementById("sb-dot"),lbl=document.getElementById("sb-lbl"); if(!dot)return;
   dot.className=state; lbl.textContent={ok:"Live",sync:"Sync...",err:"Offline",off:"Offline"}[state]||"DB";
@@ -258,9 +248,12 @@ function getCategoryByTipologia(t){
   if(t==="Naturale") return "Naturale";
   if(t==="Dolce"||t==="Vino Dolce") return "Dolce";
   if(t==="Passito"||t==="Passito rosso") return "Passito";
-  if(t==="Liquoroso"||t==="Vino Liquoroso"||t==="Vino Ossidativo") return "Liquoroso";
+  if(t==="Liquoroso"||t==="Vino Liquoroso"||t==="Ossidativo"||t==="Vino Ossidativo") return "Liquoroso";
+  if(t==="Vermouth"||t==="Amaro"||t==="Amari") return "Vermouth";
   return "Altro";
 }
+// "N.V.", "sa", "SA", "s.a." → una sola dicitura in carta.
+function _annata(a){ a=String(a==null?"":a).trim(); return /^(n\.?\s*v\.?|s\.?\s*a\.?)$/i.test(a)?"s.a.":a; }
 function _fmtP(v){ var s=parseFloat(v).toFixed(2); return s.replace(/\.00$/,"").replace(/(\.\d)0$/,"$1"); }
 function _capVitigni(s){
   if(!s) return s;
@@ -308,7 +301,7 @@ async function loadWines(){
     var pCalice=parseFloat(w.prezzoCalice||w.prezzoAlCalice)||0;
     var _paese=inferPaese(w.nazione,w.regione,w.zona);
     d[cat].push({
-      id:w.id, n:nome, produttore:prod, annata:w.annata||"",
+      id:w.id, n:nome, produttore:prod, annata:_annata(w.annata),
       inFresco:!!w.inFresco,
       _in:_firstIn(w),
       p:pNum>0?"€ "+_fmtP(pNum):"",
@@ -376,7 +369,7 @@ async function init(){
     var _wl=document.getElementById("wine-list");
     if(_wl) _wl.addEventListener("click",function(e){
       if(e.target.closest("[data-sel]")) return; // gestito dal listener globale
-      var el=e.target.closest(".vino[data-id],.ref[data-id]"); if(el) openModal(el.getAttribute("data-id"));
+      var el=e.target.closest(".ref[data-id]"); if(el) openModal(el.getAttribute("data-id"));
     });
     var _cn=document.getElementById("chipnav");
     if(_cn) _cn.addEventListener("click",function(e){ var go=e.target.closest(".chip[data-go]"); if(go) _goSection(go.getAttribute("data-go")); });
@@ -480,7 +473,7 @@ function _matchesFilters(w){
   return true;
 }
 
-function applyFilters(){ _ensureFrescoCSS();
+function applyFilters(){
   var sortSel=document.getElementById("sort-sel");
   var sortVal=sortSel?sortSel.value:"default";
   var html=""; var total=0; var navItems=[];
@@ -527,7 +520,7 @@ function applyFilters(){ _ensureFrescoCSS();
   if(rc) rc.textContent=total+" etichett"+(total===1?"a":"e");
   var wl=document.getElementById("wine-list");
   var _legenda = html.indexOf("w-fresco")>=0
-    ? "<div class=\"fresco-legenda\"><span class=\"w-fresco\">\u2744\uFE0E</span>servito in fresco</div>"
+    ? "<div class=\"fresco-legenda\"><span class=\"w-fresco\">"+ICE+"</span>Servito in fresco</div>"
     : "";
   if(wl) wl.innerHTML=html?(html+_legenda):"<div class=\"vuoto\">Nessun vino trovato.</div>";
   _syncFabBadge();
@@ -580,7 +573,7 @@ function _syncSel(added){
   document.querySelectorAll("[data-sel]").forEach(function(b){
     var on=_isSel(b.getAttribute("data-sel"));
     b.setAttribute("aria-pressed",on?"true":"false");
-    if(b.classList.contains("sel-cta")) b.textContent=on?"✓ Nella tua selezione":"+ Aggiungi alla selezione";
+    if(b.classList.contains("sel-cta")) b.textContent=on?"Nella tua selezione":"Aggiungi alla selezione";
     else b.setAttribute("aria-label",on?"Togli dalla selezione":"Aggiungi alla selezione");
   });
   var list=_selWines(), n=list.length;
@@ -717,64 +710,6 @@ function _renderAltriFormati(wines){
   return html;
 }
 
-function _buildWineRow(w,cat){
-  var slug=cat.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
-  var accentColor=CAT_COLORS[cat]||"#787068";
-  var annata=w.annata?"<span class='w-annata'>"+esc(w.annata)+"</span>":"";
-  var formato=w.formato?"<span class='w-formato' title='"+esc(_fmtLitri(w.formato))+"'>"+esc(_fmtNome(w.formato))+"</span>":"";
-  var meta=[];
-  if(w.produttore) meta.push("<span class='w-prod'>"+esc(w.produttore)+"</span>");
-  if(w.vitigno)    meta.push("<span class='w-vitigno'>"+esc(w.vitigno)+"</span>");
-  var metaHtml=meta.length?"<div class='w-meta'>"+meta.join("<span class='w-sep'>\u00b7</span>")+"</div>":"";
-  var geo=[];
-  if(w.zona)                        geo.push(esc(w.zona));
-  if(w.regione&&w.regione!==w.zona) geo.push(esc(w.regione));
-  if(w.nazione)                     geo.push(esc(w.nazione));
-  var geoHtml=geo.length?"<div class='w-geo'>"+geo.join("<span class='w-sep'>\u00b7</span>")+"</div>":"";
-  var priceHtml="<div class='w-price-wrap'>"
-    +"<span class='w-price'>"+(w.p||"\u2014")+"</span>"
-    +(w.b?"<span class='w-calice'>"+esc(w.b)+"</span>":"")
-    +"</div>";
-  return "<div class='vino vino-"+slug+"' data-id='"+w.id+"' style='--accent:"+accentColor+"'>"
-    +"<div class='w-accent-bar'></div>"
-    +"<div class='w-body'>"
-    +  "<div class='w-sx'>"
-    +    "<div class='w-nome'>"+esc(w.n)+_fresco(w)+annata+formato+"</div>"
-    +    metaHtml+geoHtml
-    +  "</div>"
-    +  "<div class='w-dx'>"+priceHtml+"</div>"
-    +"</div>"
-    +"</div>";
-}
-
-// Vista calice: mostra prezzo al calice + info categoria
-function _buildCaliceRow(w,cat){
-  var slug=cat.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
-  var accentColor=CAT_COLORS[cat]||"#787068";
-  var catLabel=CAT_LABELS[cat]||cat;
-  var annata=w.annata?"<span class='w-annata'>"+esc(w.annata)+"</span>":"";
-  var meta=[];
-  if(w.produttore) meta.push("<span class='w-prod'>"+esc(w.produttore)+"</span>");
-  if(w.vitigno)    meta.push("<span class='w-vitigno'>"+esc(w.vitigno)+"</span>");
-  meta.push("<span class='w-tipo-label' style='color:"+accentColor+"'>"+esc(catLabel)+"</span>");
-  var metaHtml="<div class='w-meta'>"+meta.join("<span class='w-sep'>\u00b7</span>")+"</div>";
-  var geo=[];
-  if(w.zona)                        geo.push(esc(w.zona));
-  if(w.regione&&w.regione!==w.zona) geo.push(esc(w.regione));
-  if(w.nazione)                     geo.push(esc(w.nazione));
-  var geoHtml=geo.length?"<div class='w-geo'>"+geo.join("<span class='w-sep'>\u00b7</span>")+"</div>":"";
-  return "<div class='vino vino-"+slug+" vino-calice' data-id='"+w.id+"' style='--accent:"+accentColor+"'>"
-    +"<div class='w-accent-bar'></div>"
-    +"<div class='w-body'>"
-    +  "<div class='w-sx'>"
-    +    "<div class='w-nome'>"+esc(w.n)+_fresco(w)+annata+"</div>"
-    +    metaHtml+geoHtml
-    +  "</div>"
-    +  "<div class='w-dx'><span class='w-price'>"+esc(w.b)+"</span></div>"
-    +"</div>"
-    +"</div>";
-}
-
 // ── SYNC UI IN BASE ALLA VISTA ────────────────────────────────────────────────
 function _syncViewUI(view){
   // Active state bottoni desktop
@@ -871,7 +806,7 @@ function buildSidebar(){
       html+="<div class=\"sb-acc-wrap"+(isOpen?" open":"")+"\" id=\"wrap-"+uid+"\">"
         +"<div class=\"sb-acc-head\" onclick=\"_toggleAcc(this)\">"
         +"<span class=\"sb-acc-title\">"+f.label+"</span>"
-        +"<span class=\"sb-acc-arrow\">▼</span></div>"
+        +"<span class=\"sb-acc-arrow\" aria-hidden=\"true\"></span></div>"
         +"<div class=\"sb-acc-body\" id=\""+uid+"\">"
         +"<ul class=\"sb-filter-list\">"
         +"<li class=\"sb-filter-item"+(fState[f.field]===""?" active":"")+"\" "
@@ -886,7 +821,7 @@ function buildSidebar(){
     html+="<div class=\"sb-acc-wrap"+(prezzoOpen?" open":"")+"\" id=\"wrap-acc-prezzo\">"
       +"<div class=\"sb-acc-head\" onclick=\"_toggleAcc(this)\">"
       +"<span class=\"sb-acc-title\">Prezzo bottiglia</span>"
-      +"<span class=\"sb-acc-arrow\">▼</span></div>"
+      +"<span class=\"sb-acc-arrow\" aria-hidden=\"true\"></span></div>"
       +"<div class=\"sb-acc-body\" id=\"acc-prezzo\">"
       +"<div class=\"price-row\"><span>€ "+pMin+"</span><span>€ "+pMax+(pMax>=pMaxG?"+":"")+"</span></div>"
       +"<div class=\"dual-range-wrap\"><div class=\"dual-range-track\"></div>"
@@ -894,7 +829,7 @@ function buildSidebar(){
       +"<input type=\"range\" id=\"range-min\" min=\"0\" max=\""+pMaxG+"\" step=\"5\" value=\""+pMin+"\" oninput=\"onRangeMin(this.value)\" onchange=\"onRangeMinEnd(this.value)\">"
       +"<input type=\"range\" id=\"range-max\" min=\"0\" max=\""+pMaxG+"\" step=\"5\" value=\""+pMax+"\" oninput=\"onRangeMax(this.value)\" onchange=\"onRangeMaxEnd(this.value)\"></div>"
       +"</div></div>";
-    html+="<div class=\"sb-sec\" style=\"padding-top:8px\"><button class=\"btn-reset-all\" onclick=\"resetAll()\">↺ Reset filtri</button></div>";
+    html+="<div class=\"sb-sec\" style=\"padding-top:8px\"><button class=\"btn-reset-all\" onclick=\"resetAll()\">Azzera filtri</button></div>";
   }
   inner.innerHTML=html;
   _updateRangeFill();
@@ -917,14 +852,13 @@ function _hasFresco(){
 function toggleFresco(){ fFresco=!fFresco; applyFilters(); buildSortBar(); buildSidebar(); }
 function buildSortBar(){
   var wrap=document.getElementById("sort-bar-wrap"); if(!wrap) return;
-  _ensureFrescoCSS();
   var cur=(document.getElementById("sort-sel")||{}).value||"default";
   var opts=[["default","Per produttore"],["asc","Prezzo crescente"],["desc","Prezzo decrescente"],["az","Nome A → Z"],["za","Nome Z → A"]];
   var html="<select class=\"sort-select\" id=\"sort-sel\" aria-label=\"Ordina\" onchange=\"applyFilters()\">";
   opts.forEach(function(o){ html+="<option value=\""+o[0]+"\""+(cur===o[0]?" selected":"")+">"+o[1]+"</option>"; });
   html+="</select>";
   if(fFresco||_hasFresco()){
-    html+="<button type=\"button\" class=\"fresco-toggle"+(fFresco?" active":"")+"\" onclick=\"toggleFresco()\" aria-pressed=\""+(fFresco?"true":"false")+"\"><span class=\"ico\">\u2744\uFE0E</span>In fresco</button>";
+    html+="<button type=\"button\" class=\"fresco-toggle"+(fFresco?" active":"")+"\" onclick=\"toggleFresco()\" aria-pressed=\""+(fFresco?"true":"false")+"\"><span class=\"w-fresco\" style=\"margin:0\">"+ICE+"</span>In fresco</button>";
   }
   wrap.innerHTML=html;
 }
@@ -989,7 +923,7 @@ function openModal(id){
   if(w.p) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Bottiglia</div><div class=\"modal-p-val\">"+esc(w.p)+"</div></div>";
   if(w.b) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Al calice</div><div class=\"modal-p-val\">"+esc(w.b)+"</div></div>";
   var on=_isSel(w.id);
-  p+="<button type=\"button\" class=\"sel-cta\" data-sel=\""+esc(String(w.id))+"\" aria-pressed=\""+on+"\">"+(on?"\u2713 Nella tua selezione":"+ Aggiungi alla selezione")+"</button>";
+  p+="<button type=\"button\" class=\"sel-cta\" data-sel=\""+esc(String(w.id))+"\" aria-pressed=\""+on+"\">"+(on?"Nella tua selezione":"Aggiungi alla selezione")+"</button>";
   if(prezzoEl) prezzoEl.innerHTML=p;
   var body="";
   [["Produttore",w.produttore],["Formato",w.formato?(_fmtNome(w.formato)+" · "+_fmtLitri(w.formato)):null],["Regione",w.regione],
@@ -1043,12 +977,11 @@ function _refreshDrawer(){
   body.querySelectorAll("[id]").forEach(function(el){ el.removeAttribute("id"); });
   // Toggle "In fresco" in cima al drawer (i filtri su mobile stanno qui, non nella sort-bar)
   if(fFresco || _hasFresco()){
-    _ensureFrescoCSS();
     var ft=document.createElement("button");
     ft.type="button";
     ft.className="fresco-toggle drawer-fresco"+(fFresco?" active":"");
     ft.setAttribute("aria-pressed", fFresco?"true":"false");
-    ft.innerHTML="<span class=\"df-ice\">\u2744\uFE0E</span> Solo vini in fresco";
+    ft.innerHTML="<span class=\"w-fresco\" style=\"margin:0\">"+ICE+"</span>Solo vini in fresco";
     ft.addEventListener("click",function(){ toggleFresco(); closeDrawer(); });
     body.insertBefore(ft, body.firstChild);
   }

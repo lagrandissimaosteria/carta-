@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Carta dei Vini — Lagrandissima</title>
 <meta name="description" content="La carta dei vini di Osteria Lagrandissima: al calice, carta breve e cantina completa.">
 <meta name="theme-color" content="#1e3347">
@@ -390,21 +390,25 @@ body.has-sel .sel-fab{display:flex}
 @media(max-width:1023px){
   body>.sidebar-col{display:none}
 
-  /* Copertina: l'alga occupa la pagina, le scelte stanno sotto il pollice */
+  /* Copertina: blocco centrato, l'alga dietro. Se lo schermo è basso si scorre, mai tagliato. */
   .mobile-landing{
-    position:fixed;inset:0;z-index:50;overflow:hidden;
-    display:flex;flex-direction:column;justify-content:flex-end;
-    padding:24px var(--gut) calc(28px + env(safe-area-inset-bottom));
+    position:fixed;top:0;left:0;right:0;height:100vh;height:100dvh;z-index:50;
+    overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    display:flex;flex-direction:column;align-items:center;
+    padding:32px var(--gut) calc(32px + env(safe-area-inset-bottom));
     background:var(--blu);
     transition:opacity .22s var(--ease),transform .22s var(--ease);
   }
-  .mobile-landing>.alga{position:absolute;right:-22vw;top:-6vh;height:80vh;max-height:760px;color:var(--alga)}
+  .mobile-landing>.alga{position:fixed;left:50%;top:50%;height:min(86vh,720px);transform:translate(-30%,-50%);color:var(--alga)}
+  .mobile-landing>h1{margin-top:auto}
+  .mobile-nav-btns{margin-bottom:auto}
+  .mobile-landing>h1,.mobile-landing-sub,.mobile-nav-btns{width:100%;max-width:400px}
   .mobile-landing>*:not(.alga){position:relative}
   .mobile-landing.hidden{display:none!important}
   .mobile-landing.is-leaving{opacity:0;transform:translateY(-8px);pointer-events:none}
-  .mobile-landing-logo{display:block;width:100%;max-width:420px;height:auto}
-  .mobile-landing-sub{margin:14px 0 28px;font-size:11px;font-weight:600;font-stretch:125%;letter-spacing:.2em;text-transform:uppercase;color:var(--carta-2)}
-  .mobile-nav-btns{display:flex;flex-direction:column;gap:10px;max-width:420px}
+  .mobile-landing-logo{display:block;width:100%;height:auto}
+  .mobile-landing-sub{text-align:center;margin:16px 0 32px;font-size:11px;font-weight:600;font-stretch:125%;letter-spacing:.2em;text-transform:uppercase;color:var(--carta-2)}
+  .mobile-nav-btns{display:flex;flex-direction:column;gap:10px}
   .mobile-nav-btn{
     display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;
     min-height:72px;padding:12px 22px 12px 26px;text-align:left;
@@ -426,6 +430,7 @@ body.has-sel .sel-fab{display:flex}
   .btn-back-mobile::before{content:"";width:9px;height:9px;border-bottom:1.6px solid currentColor;border-left:1.6px solid currentColor;transform:rotate(45deg);margin-left:2px}
   .btn-back-mobile .alga{height:30px;margin-left:auto;color:var(--carta-2)}
 
+  .page-wrap{max-width:640px;margin:0 auto}
   body.mobile-list-view .wine-col{padding-top:calc(52px + env(safe-area-inset-top))}
   body.mobile-list-view .filter-fab{display:none}
   body.mobile-list-view.view-cantina .filter-fab{display:inline-flex}

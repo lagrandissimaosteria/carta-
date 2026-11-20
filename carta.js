@@ -23,13 +23,13 @@ const DB_USER = _CFG.dbUser;
 
 var _useRestFallback = SB_KEY.startsWith("sb_publishable_") || SB_KEY.startsWith("sb_");
 
-const CAT_ORDER = ["Spumante","Bianco","Macerato","Rosato","Rosso","Naturale","Dolce","Passito","Liquoroso","Vermouth","Altro","AltriFormati"];
+const CAT_ORDER = ["Spumante","Bianco","Macerato","Rosato","Rosso","Naturale","Dolce","Passito","Liquoroso","Vermouth","Altro","Sfuso","AltriFormati"];
 // Ordine enologico interno ai "Altri Formati" (esclude la categoria contenitore).
-const CAT_ORDER_ENO = CAT_ORDER.filter(function(c){ return c!=="AltriFormati"; });
+const CAT_ORDER_ENO = CAT_ORDER.filter(function(c){ return c!=="AltriFormati"&&c!=="Sfuso"; });
 const CAT_LABELS = {
   Rosso:"Rossi", Bianco:"Bianchi", Rosato:"Rosati", Spumante:"Bolle",
   Naturale:"Naturali", Dolce:"Dolci", Passito:"Passiti", Liquoroso:"Liquorosi",
-  Macerato:"Macerati", Vermouth:"Vermouth e amari", Altro:"Altro", AltriFormati:"Altri Formati"
+  Macerato:"Macerati", Vermouth:"Vermouth e amari", Altro:"Altro", Sfuso:"Vino sfuso", AltriFormati:"Altri Formati"
 };
 const CAT_COLORS = {
   Spumante:  "#8EA8B8",  // grigio-azzurro polvere
@@ -42,6 +42,7 @@ const CAT_COLORS = {
   Passito:   "#8A4A40",  // terracotta
   Liquoroso: "#9A6030",  // ambra scura
   Vermouth:  "#7A5A48",  // china
+  Sfuso:     "#6E7A4E",  // verde salvia scuro
   AltriFormati:"#607080",// acciaio blu
   Altro:     "#787068"   // grigio caldo neutro
 };
@@ -292,13 +293,18 @@ async function loadWines(){
     var tipoEno=getCategoryByTipologia(rawTipo);
     // Qualunque formato diverso dalla 0,75 esce dalla sua categoria enologica e
     // confluisce in "Altri Formati", dove viene poi risuddiviso per bucket e tipologia.
-    var cat=fmt!==0.75?"AltriFormati":tipoEno;
+    // Sfuso (bag-in-box/fusto): sezione propria, venduto a quartino e calice,
+    // mai a contenitore intero → niente prezzo bottiglia né badge formato.
+    var sfuso=!!w.sfuso;
+    var cat=sfuso?"Sfuso":(fmt!==0.75?"AltriFormati":tipoEno);
     if(!d[cat]) d[cat]=[];
     var nome=w.nome||w.nomeVino||w.n||"";
     var prod=w.produttore||"";
     var pCarta=w.prezzoCarta||"";
     var pNum=pCarta?parseFloat(String(pCarta).replace(/[^0-9.,]/g,"").replace(/\.(?=\d{3})/g,"").replace(",","."))||0:0;
     var pCalice=parseFloat(w.prezzoCalice||w.prezzoAlCalice)||0;
+    var pQuart=sfuso?(parseFloat(w.prezzoQuartino)||0):0;
+    if(sfuso) pNum=0;
     var _paese=inferPaese(w.nazione,w.regione,w.zona);
     d[cat].push({
       id:w.id, n:nome, produttore:prod, annata:_annata(w.annata),
@@ -308,6 +314,7 @@ async function loadWines(){
       b:pCalice>0?"€ "+_fmtP(pCalice):"",
       prezzo_carta:pNum,
       prezzo_calice:pCalice,
+      sfuso:sfuso, q:pQuart>0?"€ "+_fmtP(pQuart):"", prezzo_quartino:pQuart,
       vitigno:_capVitigni(w.vitigni||w.vitigno||""),
       regione:(function(r){ r=String(r||"").trim(); if(!r) return ""; var k=_regKey(r); return _regCanon[k]||(_regCanon[k]=r); })(w.regione), zona:w.zona||"",
       nazione:_paese, paese:_paese,
@@ -315,7 +322,7 @@ async function loadWines(){
       _tipoKey:tipoEno,
       _fmt:fmt,
       _fmtBucket:_fmtBucket(fmt),
-      formato:fmt!==0.75?fmt:null,
+      formato:(!sfuso&&fmt!==0.75)?fmt:null,
       qty:w.giacenza||0,
       note:w.noteVeloce||w.note||"",
       _p:pNum
@@ -406,6 +413,7 @@ var MESCITA_MAX_PREZZO = parseFloat(_CFG.mescitaMax)||45; // soglia bottiglia vi
 // ── MACRO-FILTRO PER VISTA ────────────────────────────────────────────────────
 function _getViewFilteredWines(cat){
   var wines=(db[cat]||[]);
+  if(cat==='Sfuso') return wines.filter(function(w){ return w.prezzo_quartino>0||w.prezzo_calice>0; });
   if(currentView==='calice') return wines.filter(function(w){ return w.prezzo_calice>0; });
   if(currentView==='mescita'){
     // Il tetto è tarato sulla bottiglia da 0,75: applicarlo ai grandi formati
@@ -676,7 +684,7 @@ function _buildProdBlock(items,geo){
   return html+"</div>";
 }
 function _buildRefRow(w,zona,mode){
-  var cal=(mode==="calice");
+  var cal=(mode==="calice")||!!w.sfuso;
   var id=esc(String(w.id)), on=_isSel(w.id);
   var meta=[];
   if(w.vitigno) meta.push("<i>"+esc(w.vitigno)+"</i>");
@@ -688,7 +696,9 @@ function _buildRefRow(w,zona,mode){
     +  (meta.length?"<div class='ref-meta'>"+meta.join("<span class='w-sep'> · </span>")+"</div>":"")
     +"</div>"
     +"<div class='ref-price'>"
-    +  (cal?"<span class='w-price'>"+esc(w.b)+"</span><span class='ref-calice'>al calice</span>"
+    +  (w.sfuso?(w.q?"<span class='w-price'>"+esc(w.q)+"</span><span class='ref-calice'>al quartino</span>":"")
+         +(w.b?(w.q?"<span class='ref-calice'>calice "+esc(w.b)+"</span>":"<span class='w-price'>"+esc(w.b)+"</span><span class='ref-calice'>al calice</span>"):"")
+       :cal?"<span class='w-price'>"+esc(w.b)+"</span><span class='ref-calice'>al calice</span>"
          :(w.p?"<span class='w-price'>"+esc(w.p)+"</span>":"<span class='w-price w-price-na'>su richiesta</span>")
           +(w.b?"<span class='ref-calice'>calice "+esc(w.b)+"</span>":""))
     +"</div>"
@@ -935,12 +945,13 @@ function openModal(id){
   if(annataEl) annataEl.innerHTML=(w.annata?"Annata "+esc(w.annata):"")+(_isNovita(w)?(w.annata?" ":"")+"<span class='w-novita modal-novita'>Novità</span>":"");
   var p="";
   if(w.p) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Bottiglia</div><div class=\"modal-p-val\">"+esc(w.p)+"</div></div>";
+  if(w.q) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Al quartino</div><div class=\"modal-p-val\">"+esc(w.q)+"</div></div>";
   if(w.b) p+="<div class=\"modal-p-item\"><div class=\"modal-p-lbl\">Al calice</div><div class=\"modal-p-val\">"+esc(w.b)+"</div></div>";
   var on=_isSel(w.id);
-  p+="<button type=\"button\" class=\"sel-cta\" data-sel=\""+esc(String(w.id))+"\" aria-pressed=\""+on+"\">"+(on?"Nella tua selezione":"Aggiungi alla selezione")+"</button>";
+  if(!w.sfuso) p+="<button type=\"button\" class=\"sel-cta\" data-sel=\""+esc(String(w.id))+"\" aria-pressed=\""+on+"\">"+(on?"Nella tua selezione":"Aggiungi alla selezione")+"</button>";
   if(prezzoEl) prezzoEl.innerHTML=p;
   var body="";
-  [["Produttore",w.produttore],["Formato",w.formato?(_fmtNome(w.formato)+" · "+_fmtLitri(w.formato)):null],["Regione",w.regione],
+  [["Produttore",w.produttore],["Formato",w.sfuso?"Sfuso · quartino 250 ml":w.formato?(_fmtNome(w.formato)+" · "+_fmtLitri(w.formato)):null],["Regione",w.regione],
    ["Zona",w.zona&&w.zona!==w.regione?w.zona:null],["Nazione",w.nazione],["Vitigno",w.vitigno],["Tipologia",w.tipologia]
   ].forEach(function(r){ if(r[1]) body+="<div class=\"modal-row\"><span class=\"modal-lbl\">"+r[0]+"</span><span class=\"modal-val\">"+esc(r[1])+"</span></div>"; });
   if(bodyEl) bodyEl.innerHTML=body||"<p style=\"color:var(--grey);font-size:13px\">Nessun dettaglio disponibile.</p>";

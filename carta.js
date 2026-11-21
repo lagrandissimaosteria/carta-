@@ -951,7 +951,7 @@ function openModal(id){
   if(!w.sfuso) p+="<button type=\"button\" class=\"sel-cta\" data-sel=\""+esc(String(w.id))+"\" aria-pressed=\""+on+"\">"+(on?"Nella tua selezione":"Aggiungi alla selezione")+"</button>";
   if(prezzoEl) prezzoEl.innerHTML=p;
   var body="";
-  [["Produttore",w.produttore],["Formato",w.sfuso?"Sfuso · quartino 250 ml":w.formato?(_fmtNome(w.formato)+" · "+_fmtLitri(w.formato)):null],["Regione",w.regione],
+  [["Produttore",w.produttore],["Formato",w.sfuso?"Sfuso · quartino 37,5 cl":w.formato?(_fmtNome(w.formato)+" · "+_fmtLitri(w.formato)):null],["Regione",w.regione],
    ["Zona",w.zona&&w.zona!==w.regione?w.zona:null],["Nazione",w.nazione],["Vitigno",w.vitigno],["Tipologia",w.tipologia]
   ].forEach(function(r){ if(r[1]) body+="<div class=\"modal-row\"><span class=\"modal-lbl\">"+r[0]+"</span><span class=\"modal-val\">"+esc(r[1])+"</span></div>"; });
   if(bodyEl) bodyEl.innerHTML=body||"<p style=\"color:var(--grey);font-size:13px\">Nessun dettaglio disponibile.</p>";

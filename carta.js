@@ -29,7 +29,7 @@ const CAT_ORDER_ENO = CAT_ORDER.filter(function(c){ return c!=="AltriFormati"&&c
 const CAT_LABELS = {
   Rosso:"Rossi", Bianco:"Bianchi", Rosato:"Rosati", Spumante:"Bolle",
   Naturale:"Naturali", Dolce:"Dolci", Passito:"Passiti", Liquoroso:"Liquorosi",
-  Macerato:"Macerati", Vermouth:"Vermouth e amari", Altro:"Altro", Sfuso:"Vino sfuso", AltriFormati:"Altri Formati"
+  Macerato:"Macerati", Vermouth:"Vermouth e amari", Altro:"Altro", Sfuso:"I quartini", AltriFormati:"Altri Formati"
 };
 const CAT_COLORS = {
   Spumante:  "#8EA8B8",  // grigio-azzurro polvere

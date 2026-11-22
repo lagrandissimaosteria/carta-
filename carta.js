@@ -23,7 +23,7 @@ const DB_USER = _CFG.dbUser;
 
 var _useRestFallback = SB_KEY.startsWith("sb_publishable_") || SB_KEY.startsWith("sb_");
 
-const CAT_ORDER = ["Spumante","Bianco","Macerato","Rosato","Rosso","Naturale","Dolce","Passito","Liquoroso","Vermouth","Altro","Sfuso","AltriFormati"];
+const CAT_ORDER = ["Spumante","Bianco","Macerato","Rosato","Rosso","Naturale","Sfuso","Dolce","Passito","Liquoroso","Vermouth","Altro","AltriFormati"];
 // Ordine enologico interno ai "Altri Formati" (esclude la categoria contenitore).
 const CAT_ORDER_ENO = CAT_ORDER.filter(function(c){ return c!=="AltriFormati"&&c!=="Sfuso"; });
 const CAT_LABELS = {
@@ -327,6 +327,15 @@ async function loadWines(){
       note:w.noteVeloce||w.note||"",
       _p:pNum
     });
+    // Sfuso venduto anche al calice: il calice compare nella sezione della sua
+    // tipologia (es. Rossi, Macerati) come riga solo-calice. Copia "ombra" esclusa
+    // dall'indice per id: scheda e selezione restano quelle dello sfuso originale.
+    if(sfuso&&pCalice>0&&tipoEno!=="Sfuso"){
+      var orig=d[cat][d[cat].length-1];
+      var ombra=Object.assign({},orig,{sfuso:false,q:"",prezzo_quartino:0,p:"",prezzo_carta:0,_p:0,_calOnly:true});
+      if(!d[tipoEno]) d[tipoEno]=[];
+      d[tipoEno].push(ombra);
+    }
   });
   catConfig=CAT_ORDER.filter(function(t){ return d[t]&&d[t].length>0; })
     .map(function(t){ return {nome:t,label:CAT_LABELS[t]||t,colore:CAT_COLORS[t]||"#888"}; });
@@ -400,7 +409,7 @@ async function init(){
 function _buildIdxById(){
   _idxById.clear();
   Object.keys(db).forEach(function(cat){
-    (db[cat]||[]).forEach(function(w){ if(w.id!=null) _idxById.set(String(w.id),{v:w,c:cat}); });
+    (db[cat]||[]).forEach(function(w){ if(w.id!=null&&!w._calOnly) _idxById.set(String(w.id),{v:w,c:cat}); });
   });
   // Etichette esaurite nel frattempo: escono dalla selezione dell'ospite.
   var before=_sel.length;
@@ -684,7 +693,7 @@ function _buildProdBlock(items,geo){
   return html+"</div>";
 }
 function _buildRefRow(w,zona,mode){
-  var cal=(mode==="calice")||!!w.sfuso;
+  var cal=(mode==="calice")||!!w.sfuso||!!w._calOnly;
   var id=esc(String(w.id)), on=_isSel(w.id);
   var meta=[];
   if(w.vitigno) meta.push("<i>"+esc(w.vitigno)+"</i>");
@@ -697,7 +706,7 @@ function _buildRefRow(w,zona,mode){
     +"</div>"
     +"<div class='ref-price'>"
     +  (w.sfuso?(w.q?"<span class='w-price'>"+esc(w.q)+"</span><span class='ref-calice'>al quartino</span>":"")
-         +(w.b?(w.q?"<span class='ref-calice'>calice "+esc(w.b)+"</span>":"<span class='w-price'>"+esc(w.b)+"</span><span class='ref-calice'>al calice</span>"):"")
+         +((w.b&&!w.q)?"<span class='w-price'>"+esc(w.b)+"</span><span class='ref-calice'>al calice</span>":"")
        :cal?"<span class='w-price'>"+esc(w.b)+"</span><span class='ref-calice'>al calice</span>"
          :(w.p?"<span class='w-price'>"+esc(w.p)+"</span>":"<span class='w-price w-price-na'>su richiesta</span>")
           +(w.b?"<span class='ref-calice'>calice "+esc(w.b)+"</span>":""))
